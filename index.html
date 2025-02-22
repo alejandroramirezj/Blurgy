@@ -75,7 +75,8 @@
         }
         .carousel-controls {
             display: flex;
-            justify-content: space-between;
+            flex-direction: column;
+            align-items: center;
             margin-top: 20px;
         }
         .privacy-policy {
@@ -92,57 +93,74 @@
 </head>
 <body>
     <header style="text-align: center; padding: 20px; display: flex; align-items: center; justify-content: center;">
-        <h1 style="margin-right: 10px;">
-            Blurgy
-        </h1>
-        <img src="desactivado.png" alt="Logo de Blurgy" class="logo" id="blurgyLogo" style="cursor: pointer;">
+        <img src="desactivado.png" alt="Logo de Blurgy" class="logo" id="blurgyLogo" style="cursor: pointer; max-width: 80px;">
+        <h1 id="blurgyTitle" style="margin-left: 10px;">Blurgy</h1>
     </header>
     <div class="container">
         <h2>¿Cómo Funciona Blurgy?</h2>
-        <p>¡Bienvenido a Blurgy! Blurgy es un gestor de difuminado que te permite ocultar elementos en cualquier sitio web sin necesidad de refrescar la página. Con una interfaz sencilla y fácil de usar, puedes activar o desactivar el difuminado y gestionar los elementos que deseas ocultar.</p>
+        <p style="font-size: 18px; line-height: 1.6;">¡Bienvenido a Blurgy! Blurgy es un gestor de difuminado que te permite ocultar elementos en cualquier sitio web sin necesidad de refrescar la página. Con una interfaz sencilla y fácil de usar, puedes activar o desactivar el difuminado y gestionar los elementos que deseas ocultar.</p>
 
-        <div style="display: flex; align-items: center;">
-            <div id="confidentialText" style="color: red; font-weight: bold; margin-right: 10px;">
+        <div style="display: flex; align-items: center; justify-content: center; margin: 20px 0;">
+            <div id="confidentialText" style="color: red; font-weight: bold; margin-right: 10px; font-size: 20px;">
                 Estos textos son super confidenciales
             </div>
             <div style="position: relative; display: inline-block;">
                 <img src="desactivado.png" alt="Activar Difuminado" id="toggleImage" style="cursor: pointer; max-width: 50px; margin-left: 10px;">
-                <span style="position: absolute; background: #fff; border: 1px solid #ccc; border-radius: 5px; padding: 5px; left: 60px; top: -10px; display: block; width: 200px; text-align: left;" id="tooltip">
-                    "Quítame las gafas si no quieres que vea el texto"
+                <span style="position: absolute; background: #fff; border: 1px solid #ccc; border-radius: 5px; padding: 10px; left: 60px; top: -10px; display: block; width: 180px; text-align: left; font-size: 16px;" id="tooltip">
+                    ¡Quítame las gafas si no quieres que vea el texto!
                 </span>
             </div>
         </div>
 
-        <h2>Características</h2>
-        <ul>
-            <li><strong>Difuminado en tiempo real</strong>: Aplica el difuminado a los elementos seleccionados sin recargar la página.</li>
-            <li><strong>Modo de selección</strong>: Activa el modo de selección para elegir qué elementos difuminar.</li>
-            <li><strong>Gestión de configuraciones</strong>: Exporta e importa configuraciones de difuminado fácilmente.</li>
-            <li><strong>Interfaz amigable</strong>: Diseño limpio y moderno para una experiencia de usuario óptima.</li>
+        <h2>¿Te identificas con alguno de estos problemas?</h2>
+        <ul style="list-style-type: none; padding: 0;">
+            <li style="background: #f9f9f9; border-radius: 8px; padding: 15px; margin-bottom: 10px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);">
+                <strong>Capturas eternas</strong>: Editar capturas para ocultar datos de clientes es un deporte extremo.
+            </li>
+            <li style="background: #f9f9f9; border-radius: 8px; padding: 15px; margin-bottom: 10px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);">
+                <strong>Datos de museo</strong>: Mostrar datos demo más viejos que tu abuela es un clásico.
+            </li>
+            <li style="background: #f9f9f9; border-radius: 8px; padding: 15px; margin-bottom: 10px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);">
+                <strong>Logos de otros clientes</strong>: Impiden que puedas enseñar las funcionalidades a potenciales clientes.
+            </li>
         </ul>
 
-        <h2>Uso</h2>
-        <div class="carousel">
-            <div class="carousel-item active" id="gif1">
-                <h3>1. Haz clic en el ícono de Blurgy en la barra de herramientas de Chrome.</h3>
-                <img src="1.gif" alt="Activar y desactivar">
+        <h2>Descubre cómo Blurgy puede transformar tu experiencia</h2>
+        
+        <div style="display: flex; align-items: flex-start; margin-top: 20px; flex-wrap: wrap; gap: 20px;">
+            <div class="carousel-controls" style="flex: 1; min-width: 250px;">
+                <div id="card1" style="background: #f9f9f9; border-radius: 8px; padding: 15px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); text-align: center; width: 200px; margin-bottom: 20px; transition: transform 0.3s, box-shadow 0.3s, border 0.3s;" onmouseover="highlightCard('card1')" onmouseout="removeHighlight('card1')" onclick="selectCard('card1', 'gif1')">
+                    <h4 style="margin: 0; color: #007aff;">Activar</h4>
+                    <p style="margin-top: 5px; font-size: 12px; color: #666;">Activa la extensión para comenzar a difuminar.</p>
+                </div>
+                <div id="card2" style="background: #f9f9f9; border-radius: 8px; padding: 15px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); text-align: center; width: 200px; margin-bottom: 20px; transition: transform 0.3s, box-shadow 0.3s, border 0.3s;" onmouseover="highlightCard('card2')" onmouseout="removeHighlight('card2')" onclick="selectCard('card2', 'gif2')">
+                    <h4 style="margin: 0; color: #999;">Seleccionar</h4>
+                    <p style="margin-top: 5px; font-size: 12px; color: #666;">Selecciona los elementos que deseas difuminar.</p>
+                </div>
+                <div id="card3" style="background: #f9f9f9; border-radius: 8px; padding: 15px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); text-align: center; width: 200px; margin-bottom: 20px; transition: transform 0.3s, box-shadow 0.3s, border 0.3s;" onmouseover="highlightCard('card3')" onmouseout="removeHighlight('card3')" onclick="selectCard('card3', 'gif3')">
+                    <h4 style="margin: 0; color: #999;">Editar</h4>
+                    <p style="margin-top: 5px; font-size: 12px; color: #666;">Edita el nombre de tus blurs.</p>
+                </div>
+                <div id="card4" style="background: #f9f9f9; border-radius: 8px; padding: 15px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); text-align: center; width: 200px; margin-bottom: 20px; transition: transform 0.3s, box-shadow 0.3s, border 0.3s;" onmouseover="highlightCard('card4')" onmouseout="removeHighlight('card4')" onclick="selectCard('card4', 'gif4')">
+                    <h4 style="margin: 0; color: #999;">Eliminar tus blurs</h4>
+                    <p style="margin-top: 5px; font-size: 12px; color: #666;">Pulsa de nuevo encima del elemento blureado para eliminarlo.</p>
+                </div>
             </div>
-            <div class="carousel-item" id="gif2">
-                <h3>2. Activa la extensión y selecciona los elementos que deseas difuminar.</h3>
-                <img src="2.gif" alt="Pulsar para blurear">
+
+            <div class="carousel" style="flex: 2; min-width: 300px;">
+                <div class="carousel-item active" id="gif1" style="text-align: center; transition: opacity 0.5s; width: 100%;">
+                    <img src="1.gif" alt="Activar y desactivar" style="transition: opacity 0.5s; max-width: 100%;">
+                </div>
+                <div class="carousel-item" id="gif2" style="display: none; text-align: center; transition: opacity 0.5s; width: 100%;">
+                    <img src="2.gif" alt="Pulsar para blurear" style="transition: opacity 0.5s; max-width: 100%;">
+                </div>
+                <div class="carousel-item" id="gif3" style="display: none; text-align: center; transition: opacity 0.5s; width: 100%;">
+                    <img src="3.gif" alt="Editar y guardar el nombre de tus blurs" style="transition: opacity 0.5s; max-width: 100%;">
+                </div>
+                <div class="carousel-item" id="gif4" style="display: none; text-align: center; transition: opacity 0.5s; width: 100%;">
+                    <img src="4.gif" alt="Eliminar blurs" style="transition: opacity 0.5s; max-width: 100%;">
+                </div>
             </div>
-            <div class="carousel-item" id="gif3">
-                <h3>3. Puedes editar el nombre de tus blurs.</h3>
-                <img src="3.gif" alt="Editar y guardar el nombre de tus blurs">
-            </div>
-            <div class="carousel-item">
-                <h3>4. Pulsando encima de un blur puedes quitarlo.</h3>
-                <img src="4.gif" alt="Quitar blur">
-            </div>
-        </div>
-        <div class="carousel-controls">
-            <button onclick="prevSlide()">Anterior</button>
-            <button onclick="nextSlide()">Siguiente</button>
         </div>
 
         <div class="privacy-policy">
@@ -158,18 +176,23 @@
         const toggleImage = document.getElementById('toggleImage');
         const confidentialText = document.getElementById('confidentialText');
         const tooltip = document.getElementById('tooltip');
+        const blurgyTitle = document.getElementById('blurgyTitle');
+        const blurgyLogo = document.getElementById('blurgyLogo');
+
+        // Cambiar el logo cada 5 segundos
+        setInterval(() => {
+            const isBlurred = blurgyLogo.src.includes('desactivado.png');
+            blurgyLogo.src = isBlurred ? 'activado.png' : 'desactivado.png';
+            blurgyTitle.style.filter = isBlurred ? 'blur(5px)' : 'none'; // Difuminar el título
+        }, 5000);
 
         toggleImage.addEventListener('click', () => {
             const isBlurred = toggleImage.src.includes('desactivado.png');
             toggleImage.src = isBlurred ? 'activado.png' : 'desactivado.png';
-            confidentialText.style.filter = isBlurred ? 'blur(5px)' : 'none';
-            
-            // Cambiar el texto del tooltip
-            tooltip.textContent = isBlurred ? "Vaya, ahora no veo na" : '"Quítame las gafas si no quieres que vea el texto"';
+            confidentialText.style.filter = isBlurred ? 'blur(5px)' : 'none'; // Difuminar el texto confidencial
         });
 
         const toggleButton = document.getElementById('toggleBlur');
-        const blurgyLogo = document.getElementById('blurgyLogo');
         const carouselItems = document.querySelectorAll('.carousel-item');
         let currentSlide = 0;
 
@@ -198,6 +221,54 @@
             currentSlide = (currentSlide - 1 + carouselItems.length) % carouselItems.length;
             showSlide(currentSlide);
         }
+
+        function showImage(id) {
+            const carouselItems = document.querySelectorAll('.carousel-item');
+            carouselItems.forEach(item => {
+                item.style.display = 'none'; // Ocultar todos los elementos
+                item.style.opacity = '0'; // Ocultar la imagen
+            });
+            const selectedItem = document.getElementById(id);
+            selectedItem.style.display = 'block'; // Mostrar el seleccionado
+            setTimeout(() => {
+                selectedItem.style.opacity = '1'; // Mostrar la imagen con transición
+            }, 10);
+        }
+
+        function highlightCard(cardId) {
+            const card = document.getElementById(cardId);
+            card.style.transform = 'scale(1.05)';
+            card.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.2)';
+        }
+
+        function removeHighlight(cardId) {
+            const card = document.getElementById(cardId);
+            card.style.transform = 'scale(1)';
+            card.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.1)';
+        }
+
+        function selectCard(cardId, gifId) {
+            // Reset all cards
+            const cards = ['card1', 'card2', 'card3', 'card4'];
+            cards.forEach(id => {
+                const card = document.getElementById(id);
+                card.style.border = 'none'; // Remove border
+                card.querySelector('h4').style.color = '#999'; // Reset text color
+            });
+
+            // Highlight selected card
+            const selectedCard = document.getElementById(cardId);
+            selectedCard.style.border = '2px solid #007aff'; // Add border
+            selectedCard.querySelector('h4').style.color = '#007aff'; // Change text color
+
+            // Show corresponding image
+            showImage(gifId);
+        }
+
+        // Inicializar el primer elemento como visible
+        document.addEventListener("DOMContentLoaded", () => {
+            selectCard('card1', 'gif1');
+        });
     </script>
 </body>
 </html>
