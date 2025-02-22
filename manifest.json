@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "Blurgy - Fun Blur Manager",
+  "version": "10.5",
+  "description": "Difumina elementos en cualquier sitio, sin refrescar la página. 🎭",
+  "icons": {
+    "16": "activado.png",
+    "48": "activado.png",
+    "128": "activado.png"
+  },
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "activado.png",
+      "48": "activado.png",
+      "128": "activado.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [{
+    "resources": ["activado.png", "desactivado.png"],
+    "matches": ["<all_urls>"]
+  }]
+}

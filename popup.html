@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Blurgy - Gestor de Blur</title>
+  <style>
+    :root {
+      --primary: #4299e1;
+      --primary-dark: #3182ce;
+      --secondary: #e2e8f0;
+      --secondary-dark: #cbd5e0;
+      --text: #2d3748;
+      --text-light: #718096;
+      --danger: #e53e3e;
+      --danger-light: #fed7d7;
+      --success: #48bb78;
+      --white: #ffffff;
+      --shadow: 0 2px 4px rgba(0,0,0,0.05);
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      width: 420px;
+      padding: 16px;
+      background: var(--white);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 20px;
+      position: relative;
+    }
+    .title {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .topo {
+      font-size: 36px;
+    }
+    .version {
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--secondary);
+      padding: 4px 8px;
+      border-radius: 20px;
+      font-size: 12px;
+      color: var(--text-light);
+    }
+
+    #extensionStateImage {
+      display: block;
+      margin: 0 auto 10px;
+      max-width: 100px;
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: 0.2s;
+      width: 100%;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: var(--white);
+    }
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+    .btn-secondary {
+      background: var(--secondary);
+      color: var(--text);
+    }
+    .btn-secondary:hover {
+      background: var(--secondary-dark);
+    }
+
+    .toggle-container {
+      background: var(--white);
+      border: 1px solid var(--secondary);
+      border-radius: var(--radius);
+      padding: 12px;
+      margin: 16px 0;
+    }
+    .toggle-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--secondary);
+      border-radius: 24px;
+      transition: 0.3s;
+    }
+    .slider:before {
+      content: "";
+      position: absolute;
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background: var(--white);
+      border-radius: 50%;
+      transition: 0.3s;
+    }
+    input:checked + .slider {
+      background: var(--success);
+    }
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+
+    #domainWrapper {
+      background: var(--white);
+      border: 1px solid var(--secondary);
+      border-radius: var(--radius);
+      padding: 12px;
+      margin-bottom: 16px;
+    }
+    details {
+      border: 1px solid var(--secondary);
+      border-radius: var(--radius-sm);
+      padding: 8px;
+      background: var(--secondary);
+    }
+    summary {
+      cursor: pointer;
+      font-weight: 600;
+      list-style: none;
+    }
+    .blur-items {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .blur-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--white);
+      border-radius: var(--radius-sm);
+      padding: 8px;
+    }
+    .blur-name {
+      outline: none;
+      cursor: default;
+    }
+    .buttons-blur {
+      display: flex;
+      gap: 8px;
+    }
+    .rename-blur {
+      background: none;
+      border: none;
+      color: var(--primary);
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .rename-blur:hover {
+      background: #ddeefc;
+    }
+    .remove-blur {
+      background: none;
+      border: none;
+      color: var(--danger);
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .remove-blur:hover {
+      background: var(--danger-light);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 20px;
+      color: var(--text-light);
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    #importBlur {
+      display: none;
+    }
+
+    .toggle-title {
+      display: flex;
+      align-items: center;
+    }
+
+    #selectorStateImage {
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1 class="title">
+      🎭 Blurgy <span class="topo">🐾</span>
+    </h1>
+    <span class="version">v1.0</span>
+  </div>
+
+  <img id="extensionStateImage" src="activado.png" alt="Estado de la extensión" />
+
+  <button id="toggleExtension" class="btn btn-primary">
+    <span class="toggle-icon">🎯</span>
+    <span class="toggle-text">Activar Extensión</span>
+  </button>
+
+  <div class="toggle-container">
+    <div class="toggle-header">
+      <div class="toggle-title">
+        <span>Modo Selección</span>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="toggleEdit" />
+        <span class="slider"></span>
+      </label>
+    </div>
+    <small style="color: var(--text-light)">Activa para seleccionar elementos a blurear</small>
+  </div>
+
+  <div id="domainWrapper"></div>
+
+  <div class="actions">
+    <button id="exportBlur" class="btn btn-secondary">
+      <span>📤</span> Exportar
+    </button>
+    <input type="file" id="importBlur" accept=".json" />
+    <button id="importBlurButton" class="btn btn-secondary">
+      <span>📥</span> Importar
+    </button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
