@@ -9,9 +9,13 @@
     "128": "activado.png"
   },
   "permissions": [
-    "storage",
     "activeTab",
+    "storage",
     "scripting"
+  ],
+  "host_permissions": [
+    "https://example.com/*",
+    "https://otro-sitio.com/*"
   ],
   "action": {
     "default_popup": "popup.html",
