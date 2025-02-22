@@ -190,6 +190,7 @@
             const isBlurred = toggleImage.src.includes('desactivado.png');
             toggleImage.src = isBlurred ? 'activado.png' : 'desactivado.png';
             confidentialText.style.filter = isBlurred ? 'blur(5px)' : 'none'; // Difuminar el texto confidencial
+            tooltip.textContent = isBlurred ? 'Vaya ahora no veo na' : '¡Quítame las gafas si no quieres que vea el texto!'; // Cambiar el texto del tooltip
         });
 
         const toggleButton = document.getElementById('toggleBlur');
