@@ -73,20 +73,38 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   function toggleEditMode() {
     const isOn = toggleEdit.checked;
-    chrome.storage.local.set({ editMode: isOn }, () => {
-      // Actualizar imagen del selector
-      const selectorImg = document.getElementById("selectorStateImage");
-      selectorImg.src = "activado.png";
-      selectorImg.style.display = isOn ? "block" : "none";
-      
-      // Avisar content script
-      chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-        chrome.tabs.sendMessage(tabs[0].id, {
-          action: "toggleEditMode",
-          enable: isOn
+    chrome.storage.local.get("extensionActive", data => {
+      const isActive = data.extensionActive ?? true;
+
+      // Si la extensión no está activa, activarla
+      if (!isActive) {
+        chrome.storage.local.set({ extensionActive: true }, () => {
+          refreshExtensionToggleUI(); // Actualiza la UI del toggle de extensión
+          // Avisar al content script
+          chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+            chrome.tabs.sendMessage(tabs[0].id, {
+              action: "toggleExtension",
+              enable: true
+            });
+          });
         });
+      }
+
+      // Actualizar el modo de edición
+      chrome.storage.local.set({ editMode: isOn }, () => {
+        const selectorImg = document.getElementById("selectorStateImage");
+        selectorImg.src = "activado.png";
+        selectorImg.style.display = isOn ? "block" : "none";
+
+        // Avisar content script
+        chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+          chrome.tabs.sendMessage(tabs[0].id, {
+            action: "toggleEditMode",
+            enable: isOn
+          });
+        });
+        showNotification(isOn ? "🎯 Modo selección activado" : "🚫 Modo selección desactivado");
       });
-      showNotification(isOn ? "🎯 Modo selección activado" : "🚫 Modo selección desactivado");
     });
   }
   toggleEdit.addEventListener("change", toggleEditMode);
