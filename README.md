@@ -26,10 +26,9 @@
    ![Activar y desactivar](1.gif)
 3. Pulsa en cada elemento para blurearlo.
 ![Pulsar para blurear](2.gif)
-4. Utiliza el botón de exportar para guardar tu configuración o importar una configuración existente.
-5. Puedes editar el nombre de tus blurs.
+4. Puedes editar el nombre de tus blurs.
    ![Editar y guardar el nombre de tus blurs](/3.gif)
-6. Pulsando encima de un blur puedes quitarlo, al igual que en las acciones de la derecha del blur.
+5. Pulsando encima de un blur puedes quitarlo, al igual que en las acciones de la derecha del blur.
    ![Quitar blur](/4.gif)
 
 ## Contribuciones
