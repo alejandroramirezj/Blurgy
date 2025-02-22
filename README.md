@@ -19,6 +19,11 @@
 3. Activa el **Modo de desarrollador**.
 4. Haz clic en **Cargar descomprimida** y selecciona la carpeta del proyecto.
 
+## Configuración
+
+Puedes descargar el archivo de configuración JSON de Blurgy para Clevergy y realizar cambios según tus necesidades. Descárgalo y pulsa en el botón **Importar** para cargar la configuración.
+[Descargar configuración Blurgy Clevergy](/Blurgy_clevergy.json)
+
 ## Uso
 
 1. Haz clic en el ícono de Blurgy en la barra de herramientas de Chrome.
