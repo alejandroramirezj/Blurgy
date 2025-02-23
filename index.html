@@ -15,7 +15,6 @@
       font-family: 'Helvetica Neue', sans-serif;
       background-color: #f0f0f5;
       color: #333;
-      margin: 0;
       padding: 20px;
     }
 
@@ -26,9 +25,9 @@
       justify-content: center;
       padding: 20px;
       background: #fff;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      text-align: center;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
       margin-bottom: 20px;
+      border-radius: 12px;
     }
     .logo {
       max-width: 80px;
@@ -59,18 +58,24 @@
     /* ===== ICONO + TEXTO (TOGGLE) ===== */
     .toggle-section {
       display: flex;
+      flex-direction: column;
       align-items: flex-start;
       margin-top: 20px;
     }
     .icon-container {
       display: flex;
       align-items: center;
-      flex: 1;
+      width: 100%;
+      justify-content: space-between;
     }
     .icon-container img {
       max-width: 60px;
       cursor: pointer;
       margin-right: 10px;
+      transition: transform 0.2s;
+    }
+    .icon-container img:hover {
+      transform: scale(1.05);
     }
     .tooltip {
       background: #fff;
@@ -80,20 +85,29 @@
       font-size: 16px;
       box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     }
+    .text-container {
+      text-align: right;
+      margin-top: 10px;
+      width: 100%;
+    }
 
     /* ===== TABLA DE DATOS ===== */
     .table-container {
       flex: 2;
+      margin-top: 20px;
+      overflow-x: auto;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-left: 20px;
+      border-radius: 8px;
+      overflow: hidden;
     }
     table th, table td {
       border: 1px solid #ddd;
-      padding: 8px;
+      padding: 12px;
       text-align: left;
+      word-wrap: break-word;
     }
     table th {
       background-color: #f9f9f9;
@@ -108,6 +122,7 @@
     .problem-list {
       list-style-type: none;
       padding: 0;
+      margin-top: 40px;
     }
     .problem-list li {
       background: #f9f9f9;
@@ -130,17 +145,17 @@
       background: #f9f9f9;
       border-radius: 8px;
       padding: 15px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
       text-align: center;
       width: 200px;
       margin-bottom: 20px;
-      transition: transform 0.3s, box-shadow 0.3s, border 0.3s;
+      transition: transform 0.3s, box-shadow 0.3s;
       cursor: pointer;
     }
     /* Efecto hover para todas las tarjetas */
     .card:hover {
       transform: scale(1.05);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     }
     /* Tarjeta seleccionada */
     .card.selected {
@@ -194,6 +209,61 @@
       text-align: center;
       margin: 20px 0;
     }
+
+    /* ===== MEDIA QUERIES ===== */
+    @media (max-width: 768px) {
+      .flex-container {
+        flex-direction: column; /* Apilar columnas en pantallas pequeñas */
+      }
+      .left-column {
+        margin-right: 0; /* Eliminar margen en pantallas pequeñas */
+        margin-bottom: 20px; /* Espacio entre columnas */
+      }
+      .right-column {
+        display: flex;
+        justify-content: center; /* Centrar la tabla en la columna */
+        align-items: flex-start; /* Alinear la tabla al inicio */
+      }
+      .table-container {
+        width: 100%; /* Asegura que ocupe todo el ancho disponible */
+        padding: 10px; /* Ajustar espaciado interno en pantallas pequeñas */
+      }
+      .toggle-section {
+        flex-direction: row; /* Mantener icono y texto en fila */
+        align-items: center; /* Alinear verticalmente */
+      }
+      .icon-container {
+        margin-bottom: 10px; /* Espacio entre el icono y la tabla */
+      }
+    }
+
+    /* Añadir al estilo existente */
+    .flex-container {
+        display: flex;
+        justify-content: space-between; /* Espacio entre columnas */
+        margin-top: 20px; /* Espacio entre el header y el contenido */
+    }
+
+    .left-column {
+        flex: 1; /* Ocupa el 50% del ancho */
+        margin-right: 20px; /* Espacio entre columnas */
+    }
+
+    .right-column {
+        flex: 1; /* Ocupa el 50% del ancho */
+        display: flex;
+        justify-content: center; /* Centrar la tabla en la columna */
+        align-items: flex-start; /* Alinear la tabla al inicio */
+    }
+
+    .table-container {
+        overflow-x: auto; /* Permitir desplazamiento horizontal en pantallas pequeñas */
+        width: 100%; /* Asegura que ocupe todo el ancho disponible */
+        background: #fff; /* Fondo blanco para la tabla */
+        border-radius: 8px; /* Bordes redondeados */
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Sombra para dar profundidad */
+        padding: 20px; /* Espaciado interno */
+    }
   </style>
 </head>
 <body>
@@ -205,45 +275,47 @@
 
   <!-- CONTENEDOR PRINCIPAL -->
   <div class="container">
-    <h2>¡Transforma tu Navegación con Blurgy!</h2>
-    <p>Con Blurgy, oculta información sensible al instante. ¡No más preocupaciones por datos expuestos!</p>
-
-    <div class="toggle-section">
-      <!-- Icono y texto -->
-      <div class="icon-container">
-        <img src="desactivado.png" alt="Activar Difuminado" id="toggleImage">
-        <span class="tooltip" id="tooltip">¡Quítame las gafas si no quieres que vea el texto!</span>
-      </div>
-
-      <!-- Tabla de datos -->
-      <div class="table-container">
-        <table id="dataTable">
-          <thead>
-            <tr>
-              <th>Fecha</th>
-              <th>Nombre</th>
-              <th>Email</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>01/01/2025</td>
-              <td>FBI - Frank B. Iñigo</td>
-              <td>fbi@example.com</td>
-            </tr>
-            <tr>
-              <td>02/01/2025</td>
-              <td>Cliente Secreto - Juanito</td>
-              <td>cliente.secreto@example.com</td>
-            </tr>
-            <tr>
-              <td>03/01/2025</td>
-              <td>Caso Asado - Pepito</td>
-              <td>caso.asado@example.com</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+    <div class="flex-container">
+        <div class="left-column">
+            <h2>¡Transforma tu Navegación con Blurgy!</h2>
+            <p>Con Blurgy, oculta información sensible al instante. ¡No más preocupaciones por datos expuestos!</p>
+            <div class="toggle-section">
+                <div class="icon-container">
+                    <img src="desactivado.png" alt="Activar Difuminado" id="toggleImage">
+                    <span class="tooltip" id="tooltip" style="margin-left: 10px;">¡Quítame las gafas si no quieres que vea el texto!</span>
+                </div>
+            </div>
+        </div>
+        <div class="right-column">
+            <div class="table-container">
+                <table id="dataTable">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Nombre</th>
+                            <th>Email</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>01/01/2025</td>
+                            <td>FBI - Frank B. Iñigo</td>
+                            <td>fbi@example.com</td>
+                        </tr>
+                        <tr>
+                            <td>02/01/2025</td>
+                            <td>Cliente Secreto - Juanito</td>
+                            <td>cliente.secreto@example.com</td>
+                        </tr>
+                        <tr>
+                            <td>03/01/2025</td>
+                            <td>Caso Asado - Pepito</td>
+                            <td>caso.asado@example.com</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <!-- LISTA DE PROBLEMAS -->
