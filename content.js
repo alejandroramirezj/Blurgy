@@ -7,7 +7,7 @@ let blurObserver = null;
 let selectionMode = false;
 
 /**
- * Inyecta estilos (.blur-extension y .hover-highlight) 
+ * Inyecta estilos (.blur-extension y .hover-highlight)
  * si aún no han sido inyectados.
  */
 function injectGlobalStyles() {
@@ -52,7 +52,7 @@ function injectGlobalStyles() {
 }
 
 /**
- * Aplica la clase .blur-extension a todos los selectores guardados 
+ * Aplica la clase .blur-extension a todos los selectores guardados
  * para el dominio actual, según 'blurSelectors' en chrome.storage.
  */
 function applyStoredBlur() {
@@ -61,14 +61,19 @@ function applyStoredBlur() {
   chrome.storage.local.get("blurSelectors", data => {
     const store = data.blurSelectors || {};
     const domain = window.location.hostname;
-    if (!store[domain]) return;
+    // Verificamos que exista y sea un array
+    if (!store[domain] || !Array.isArray(store[domain])) return;
 
     store[domain].forEach(item => {
       const selector = (typeof item === "string") ? item : item.selector;
       try {
+        // Intentamos aplicar la clase a cada elemento que coincida con el selector
         document.querySelectorAll(selector).forEach(el => {
-          // Excluir elementos específicos de ser difuminados
-          if (!el.classList.contains("ratitas-rojas") && !el.classList.contains("icono-visible")) {
+          if (
+            // Excluir elementos específicos de ser difuminados:
+            !el.classList.contains("ratitas-rojas") &&
+            !el.classList.contains("icono-visible")
+          ) {
             el.classList.add("blur-extension");
           }
         });
@@ -109,9 +114,9 @@ function disableSelectionMode() {
   document.removeEventListener("click", handleElementClick, true);
 }
 
-/** 
+/**
  * Al pasar el ratón por un elemento en modo edición,
- * le añadimos la clase .hover-highlight. 
+ * le añadimos la clase .hover-highlight.
  */
 function highlightElement(evt) {
   if (selectionMode) {
@@ -140,14 +145,16 @@ function handleElementClick(evt) {
   const el = evt.target;
   const selector = getCssPath(el);
 
+  // Si ya está difuminado, lo quitamos
   if (el.classList.contains("blur-extension")) {
     el.classList.remove("blur-extension");
     removeSelectorFromStorage(selector);
   } else {
+    // Si no, lo difuminamos
     el.classList.add("blur-extension");
     addSelectorToStorage(selector);
   }
-  // Quitamos siempre la clase de hover
+  // Quitamos siempre la clase de hover al hacer clic
   el.classList.remove("hover-highlight");
   return false;
 }
@@ -155,7 +162,7 @@ function handleElementClick(evt) {
 /**
  * Genera un selector CSS que ignora la clase .hover-highlight y
  * prioriza ID o clases únicas. Si no encuentra nada, recurre
- * al método original (nth-of-type).
+ * al método original con :nth-of-type.
  */
 function getCssPath(el) {
   if (!(el instanceof Element)) return "";
@@ -165,10 +172,10 @@ function getCssPath(el) {
     return `#${el.id}`;
   }
 
-  // 2) Filtramos clases efímeras como 'hover-highlight'
+  // 2) Filtramos la clase efímera 'hover-highlight'
   const stableClasses = Array.from(el.classList).filter(cls => cls !== "hover-highlight");
   if (stableClasses.length > 0) {
-    // Buscamos si alguna de ellas es única en el documento
+    // Buscamos si alguna es única en el documento
     const uniqueClass = stableClasses.find(
       cls => document.querySelectorAll(`.${cls}`).length === 1
     );
@@ -216,14 +223,14 @@ function addSelectorToStorage(selector) {
   });
 }
 
-/** 
- * Quita un selector del almacenamiento (dominio actual). 
+/**
+ * Quita un selector del almacenamiento (dominio actual).
  */
 function removeSelectorFromStorage(selector) {
   chrome.storage.local.get("blurSelectors", data => {
     const store = data.blurSelectors || {};
     const domain = window.location.hostname;
-    if (!store[domain]) return;
+    if (!store[domain] || !Array.isArray(store[domain])) return;
 
     store[domain] = store[domain].filter(item => {
       if (typeof item === "string") {
@@ -264,7 +271,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 });
 
-/** 
+/**
  * Desactiva totalmente la extensión:
  *  - Quita .blur-extension de todos los elementos
  *  - Remueve estilos
@@ -289,13 +296,10 @@ function turnOffExtension() {
  *  - Llama a applyStoredBlur() de nuevo
  */
 function reApplyBlur() {
-  // Quitar el blur actual
   document.querySelectorAll(".blur-extension").forEach(el => {
     el.classList.remove("blur-extension");
   });
-  // Asegurar estilos
   injectGlobalStyles();
-  // Re-aplicar
   applyStoredBlur();
 }
 
@@ -329,7 +333,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
 });
 
 /**
- * Al cargar, leemos extensionActive y editMode para aplicarlos 
+ * Al cargar, leemos extensionActive y editMode para aplicarlos
  * sin necesidad de refrescar la página.
  */
 chrome.storage.local.get(["extensionActive", "editMode"], data => {
