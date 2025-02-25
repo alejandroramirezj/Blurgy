@@ -53,13 +53,13 @@ function injectGlobalStyles() {
 
 /**
  * Aplica la clase .blur-extension a todos los selectores guardados 
- * para el dominio actual, según 'blurSelectors_Global' en chrome.storage.
+ * para el dominio actual, según 'blurSelectors' en chrome.storage.
  */
 function applyStoredBlur() {
   injectGlobalStyles();
 
-  chrome.storage.local.get("blurSelectors_Global", data => {
-    const store = data.blurSelectors_Global || {};
+  chrome.storage.local.get("blurSelectors", data => {
+    const store = data.blurSelectors || {};
     const domain = window.location.hostname;
     if (!store[domain]) return;
 
@@ -153,24 +153,43 @@ function handleElementClick(evt) {
 }
 
 /**
- * Genera un selector CSS aproximado para un elemento dado. 
- * No garantiza unicidad absoluta, pero funciona en la mayoría de casos.
+ * Genera un selector CSS que ignora la clase .hover-highlight y
+ * prioriza ID o clases únicas. Si no encuentra nada, recurre
+ * al método original (nth-of-type).
  */
 function getCssPath(el) {
   if (!(el instanceof Element)) return "";
+
+  // 1) Si tiene ID, úsalo
+  if (el.id) {
+    return `#${el.id}`;
+  }
+
+  // 2) Filtramos clases efímeras como 'hover-highlight'
+  const stableClasses = Array.from(el.classList).filter(cls => cls !== "hover-highlight");
+  if (stableClasses.length > 0) {
+    // Buscamos si alguna de ellas es única en el documento
+    const uniqueClass = stableClasses.find(
+      cls => document.querySelectorAll(`.${cls}`).length === 1
+    );
+    if (uniqueClass) {
+      return `.${uniqueClass}`;
+    }
+  }
+
+  // 3) Fallback: recorrer padres, construyendo :nth-of-type
   const path = [];
   let current = el;
 
   while (current && current.nodeType === Node.ELEMENT_NODE) {
     let sel = current.nodeName.toLowerCase();
-    // Si tiene id, lo usamos y paramos
     if (current.id) {
       sel += "#" + current.id;
       path.unshift(sel);
       break;
     } else {
-      // Contamos su posición entre los hermanos del mismo tag
-      let sibling = current, nth = 1;
+      let sibling = current;
+      let nth = 1;
       while ((sibling = sibling.previousElementSibling)) {
         if (sibling.nodeName.toLowerCase() === sel) nth++;
       }
@@ -185,15 +204,15 @@ function getCssPath(el) {
 
 /** Añade un selector al almacenamiento (dominio actual). */
 function addSelectorToStorage(selector) {
-  chrome.storage.local.get("blurSelectors_Global", data => {
-    const store = data.blurSelectors_Global || {};
+  chrome.storage.local.get("blurSelectors", data => {
+    const store = data.blurSelectors || {};
     const domain = window.location.hostname;
     if (!store[domain]) {
       store[domain] = [];
     }
     store[domain].push({ selector, name: "Nuevo blur" });
 
-    chrome.storage.local.set({ blurSelectors_Global: store });
+    chrome.storage.local.set({ blurSelectors: store });
   });
 }
 
@@ -201,8 +220,8 @@ function addSelectorToStorage(selector) {
  * Quita un selector del almacenamiento (dominio actual). 
  */
 function removeSelectorFromStorage(selector) {
-  chrome.storage.local.get("blurSelectors_Global", data => {
-    const store = data.blurSelectors_Global || {};
+  chrome.storage.local.get("blurSelectors", data => {
+    const store = data.blurSelectors || {};
     const domain = window.location.hostname;
     if (!store[domain]) return;
 
@@ -214,7 +233,7 @@ function removeSelectorFromStorage(selector) {
       }
     });
 
-    chrome.storage.local.set({ blurSelectors_Global: store });
+    chrome.storage.local.set({ blurSelectors: store });
   });
 }
 

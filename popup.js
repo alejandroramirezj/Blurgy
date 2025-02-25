@@ -35,7 +35,9 @@ document.addEventListener("DOMContentLoaded", () => {
         <span class="toggle-text">${active ? "Desactivar" : "Activar"} Extensión</span>
       `;
       toggleExtensionBtn.className = `btn ${active ? "btn-secondary" : "btn-primary"}`;
-      extensionStateImage.src = active ? "activado.png" : "desactivado.png";
+      if (extensionStateImage) {
+        extensionStateImage.src = active ? "activado.png" : "desactivado.png";
+      }
     });
   }
 
@@ -49,10 +51,12 @@ document.addEventListener("DOMContentLoaded", () => {
         refreshExtensionToggleUI();
         // Avisar al content script
         chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-          chrome.tabs.sendMessage(tabs[0].id, {
-            action: "toggleExtension",
-            enable: newState
-          });
+          if (tabs && tabs.length > 0) {
+            chrome.tabs.sendMessage(tabs[0].id, {
+              action: "toggleExtension",
+              enable: newState
+            });
+          }
         });
         showNotification(newState ? "🎉 Extensión activada" : "👋 Extensión desactivada");
       });
@@ -67,10 +71,13 @@ document.addEventListener("DOMContentLoaded", () => {
       
       // Actualizar imagen del selector
       const selectorImg = document.getElementById("selectorStateImage");
-      selectorImg.src = "activado.png";
-      selectorImg.style.display = isEditing ? "block" : "none";
+      if (selectorImg) {
+        selectorImg.src = "activado.png";
+        selectorImg.style.display = isEditing ? "block" : "none";
+      }
     });
   }
+
   function toggleEditMode() {
     const isOn = toggleEdit.checked;
     chrome.storage.local.get("extensionActive", data => {
@@ -82,10 +89,12 @@ document.addEventListener("DOMContentLoaded", () => {
           refreshExtensionToggleUI(); // Actualiza la UI del toggle de extensión
           // Avisar al content script
           chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-            chrome.tabs.sendMessage(tabs[0].id, {
-              action: "toggleExtension",
-              enable: true
-            });
+            if (tabs && tabs.length > 0) {
+              chrome.tabs.sendMessage(tabs[0].id, {
+                action: "toggleExtension",
+                enable: true
+              });
+            }
           });
         });
       }
@@ -93,15 +102,19 @@ document.addEventListener("DOMContentLoaded", () => {
       // Actualizar el modo de edición
       chrome.storage.local.set({ editMode: isOn }, () => {
         const selectorImg = document.getElementById("selectorStateImage");
-        selectorImg.src = "activado.png";
-        selectorImg.style.display = isOn ? "block" : "none";
+        if (selectorImg) {
+          selectorImg.src = "activado.png";
+          selectorImg.style.display = isOn ? "block" : "none";
+        }
 
         // Avisar content script
         chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-          chrome.tabs.sendMessage(tabs[0].id, {
-            action: "toggleEditMode",
-            enable: isOn
-          });
+          if (tabs && tabs.length > 0) {
+            chrome.tabs.sendMessage(tabs[0].id, {
+              action: "toggleEditMode",
+              enable: isOn
+            });
+          }
         });
         showNotification(isOn ? "🎯 Modo selección activado" : "🚫 Modo selección desactivado");
       });
@@ -111,8 +124,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Construir UI del dominio actual
   function buildDomainUI(domain) {
-    chrome.storage.local.get("blurSelectors_Global", data => {
-      const store = data.blurSelectors_Global || {};
+    chrome.storage.local.get("blurSelectors", data => {
+      const store = data.blurSelectors || {};
       const items = store[domain] || [];
 
       if (items.length === 0) {
@@ -163,7 +176,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function inlineRenameBlur(domain, selector, blurItemEl) {
     const nameSpan = blurItemEl.querySelector(".blur-name");
     const originalText = nameSpan.textContent || "";
-    // Quitar "1. " del comienzo
+    // Quitar "1. " del comienzo si existe
     const splitted = originalText.split(". ");
     splitted.shift();
     const existingName = splitted.join(". ").trim();
@@ -176,6 +189,14 @@ document.addEventListener("DOMContentLoaded", () => {
       if (e.key === "Enter") {
         e.preventDefault();
         nameSpan.blur();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        // Restaurar el texto original
+        nameSpan.textContent = originalText;
+        // Quitar listeners
+        nameSpan.removeEventListener("keydown", onKeyDown);
+        nameSpan.removeEventListener("blur", onBlur);
+        nameSpan.contentEditable = "false";
       }
     };
     const onBlur = () => {
@@ -189,9 +210,10 @@ document.addEventListener("DOMContentLoaded", () => {
     nameSpan.addEventListener("keydown", onKeyDown);
     nameSpan.addEventListener("blur", onBlur);
   }
+
   function renameBlurInStorage(domain, selector, newName) {
-    chrome.storage.local.get("blurSelectors_Global", data => {
-      const store = data.blurSelectors_Global || {};
+    chrome.storage.local.get("blurSelectors", data => {
+      const store = data.blurSelectors || {};
       if (!store[domain]) return;
 
       store[domain] = store[domain].map(it => {
@@ -203,7 +225,7 @@ document.addEventListener("DOMContentLoaded", () => {
           return it;
         }
       });
-      chrome.storage.local.set({ blurSelectors_Global: store }, () => {
+      chrome.storage.local.set({ blurSelectors: store }, () => {
         showNotification("✏️ Blur renombrado");
         buildDomainUI(domain);
         // Re-aplicar en la pestaña sin refrescar
@@ -214,8 +236,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Eliminar blur
   function removeBlur(domain, selector) {
-    chrome.storage.local.get("blurSelectors_Global", data => {
-      const store = data.blurSelectors_Global || {};
+    chrome.storage.local.get("blurSelectors", data => {
+      const store = data.blurSelectors || {};
       if (!store[domain]) return;
 
       store[domain] = store[domain].filter(it => {
@@ -225,7 +247,7 @@ document.addEventListener("DOMContentLoaded", () => {
           return it.selector !== selector;
         }
       });
-      chrome.storage.local.set({ blurSelectors_Global: store }, () => {
+      chrome.storage.local.set({ blurSelectors: store }, () => {
         showNotification("🗑️ Blur eliminado");
         buildDomainUI(domain);
         // Re-aplicar en la pestaña sin refrescar
@@ -237,9 +259,11 @@ document.addEventListener("DOMContentLoaded", () => {
   // Manda mensaje al content script para re-aplicar blur sin refrescar
   function reApplyBlurInTab() {
     chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-      chrome.tabs.sendMessage(tabs[0].id, {
-        action: "reApplyBlur"
-      });
+      if (tabs && tabs.length > 0) {
+        chrome.tabs.sendMessage(tabs[0].id, {
+          action: "reApplyBlur"
+        });
+      }
     });
   }
 
@@ -298,21 +322,27 @@ document.addEventListener("DOMContentLoaded", () => {
     reader.onload = evt => {
       try {
         const config = JSON.parse(evt.target.result);
+        // Validación mínima
+        if (!config.blurSelectors) {
+          throw new Error("Formato inválido: falta 'blurSelectors'");
+        }
         chrome.storage.local.set(config, () => {
           showNotification("📥 Configuración importada");
           // Reactivar y re-aplicar
           chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-            chrome.tabs.sendMessage(tabs[0].id, {
-              action: "toggleExtension",
-              enable: true
-            });
-            const domain = new URL(tabs[0].url).hostname;
-            buildDomainUI(domain);
+            if (tabs && tabs.length > 0) {
+              chrome.tabs.sendMessage(tabs[0].id, {
+                action: "toggleExtension",
+                enable: true
+              });
+              const domain = new URL(tabs[0].url).hostname;
+              buildDomainUI(domain);
+            }
           });
           refreshExtensionToggleUI();
         });
       } catch (err) {
-        showNotification("❌ Error al importar");
+        showNotification("❌ Error al importar: " + err.message);
       }
     };
     reader.readAsText(file);
@@ -323,8 +353,10 @@ document.addEventListener("DOMContentLoaded", () => {
     refreshEditCheckbox();
     refreshExtensionToggleUI();
     chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-      const domain = new URL(tabs[0].url).hostname;
-      buildDomainUI(domain);
+      if (tabs && tabs.length > 0) {
+        const domain = new URL(tabs[0].url).hostname;
+        buildDomainUI(domain);
+      }
     });
   }
   init();

@@ -21,7 +21,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
 function setDefaultBlurSelectors() {
     const defaultBlurSelectors = {};
 
-    chrome.storage.local.set({ blurSelectors_Global: defaultBlurSelectors, editMode: false }, () => {
+    chrome.storage.local.set({ blurSelectors: defaultBlurSelectors, editMode: false }, () => {
         console.log("Blurs por defecto establecidos.");
     });
 }
@@ -42,16 +42,19 @@ function syncIconWithState(forceValue) {
 }
 
 /** 
- * Pone el ícono de la barra en 'activado.png' o 'desactivado.png'.
+ * Pone el ícono de la barra según el estado (activado o desactivado),
+ * usando archivos distintos para cada tamaño (16, 48, 128).
  */
 function setIcon(isActive) {
-    const path = isActive ? "activado.png" : "desactivado.png";
+    const path16 = isActive ? "activado16.png" : "desactivado16.png";
+    const path48 = isActive ? "activado48.png" : "desactivado48.png";
+    const path128 = isActive ? "activado128.png" : "desactivado128.png";
+
     chrome.action.setIcon({
         path: {
-            "16": path,
-            "48": path,
-            "128": path
+            "16": path16,
+            "48": path48,
+            "128": path128
         }
     });
 }
-  
