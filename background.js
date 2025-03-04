@@ -19,11 +19,20 @@ chrome.storage.onChanged.addListener((changes, area) => {
 
 // Función para establecer los blurs por defecto
 function setDefaultBlurSelectors() {
+    // Comenzar con un objeto vacío
     const defaultBlurSelectors = {};
-
-    chrome.storage.local.set({ blurSelectors: defaultBlurSelectors, editMode: false }, () => {
-        console.log("Blurs por defecto establecidos.");
+    
+    // Configuración inicial para que la extensión esté activa por defecto
+    chrome.storage.local.set({ 
+        blurSelectors: defaultBlurSelectors, 
+        editMode: false,
+        extensionActive: true
+    }, () => {
+        console.log("Configuración inicial establecida.");
     });
+    
+    // Asegurarnos que predefined_blurs.js está cargado correctamente
+    // Nota: esto se gestionará principalmente desde el popup
 }
 
 /** 

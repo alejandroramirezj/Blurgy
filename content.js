@@ -172,8 +172,10 @@ function getCssPath(el) {
     return `#${el.id}`;
   }
 
-  // 2) Filtramos la clase efímera 'hover-highlight'
-  const stableClasses = Array.from(el.classList).filter(cls => cls !== "hover-highlight");
+  // 2) Filtramos la clase efímera 'hover-highlight' y 'blur-extension'
+  const stableClasses = Array.from(el.classList).filter(cls => 
+    cls !== "hover-highlight" && cls !== "blur-extension");
+  
   if (stableClasses.length > 0) {
     // Buscamos si alguna es única en el documento
     const uniqueClass = stableClasses.find(
@@ -189,20 +191,21 @@ function getCssPath(el) {
   let current = el;
 
   while (current && current.nodeType === Node.ELEMENT_NODE) {
-    let sel = current.nodeName.toLowerCase();
+    let nodeName = current.nodeName.toLowerCase();
     if (current.id) {
-      sel += "#" + current.id;
-      path.unshift(sel);
+      nodeName += "#" + current.id;
+      path.unshift(nodeName);
       break;
     } else {
       let sibling = current;
       let nth = 1;
+      // Corregido: comparamos con el nodeName en lugar de sel
       while ((sibling = sibling.previousElementSibling)) {
-        if (sibling.nodeName.toLowerCase() === sel) nth++;
+        if (sibling.nodeName.toLowerCase() === nodeName) nth++;
       }
-      sel += `:nth-of-type(${nth})`;
+      nodeName += `:nth-of-type(${nth})`;
     }
-    path.unshift(sel);
+    path.unshift(nodeName);
     current = current.parentNode;
   }
 
@@ -217,9 +220,28 @@ function addSelectorToStorage(selector) {
     if (!store[domain]) {
       store[domain] = [];
     }
-    store[domain].push({ selector, name: "Nuevo blur" });
-
-    chrome.storage.local.set({ blurSelectors: store });
+    
+    // Verificar si el selector ya existe para evitar duplicados
+    const exists = store[domain].some(item => {
+      if (typeof item === "string") {
+        return item === selector;
+      } else {
+        return item.selector === selector;
+      }
+    });
+    
+    if (!exists) {
+      store[domain].push({ selector, name: "Nuevo blur" });
+      
+      chrome.storage.local.set({ blurSelectors: store }, () => {
+        // Notificar al popup para actualizar la UI
+        chrome.runtime.sendMessage({
+          action: "selectorAdded",
+          domain: domain,
+          selector: selector
+        });
+      });
+    }
   });
 }
 
@@ -232,6 +254,8 @@ function removeSelectorFromStorage(selector) {
     const domain = window.location.hostname;
     if (!store[domain] || !Array.isArray(store[domain])) return;
 
+    const initialLength = store[domain].length;
+    
     store[domain] = store[domain].filter(item => {
       if (typeof item === "string") {
         return item !== selector;
@@ -240,7 +264,17 @@ function removeSelectorFromStorage(selector) {
       }
     });
 
-    chrome.storage.local.set({ blurSelectors: store });
+    // Solo actualizar si realmente se eliminó algo
+    if (initialLength !== store[domain].length) {
+      chrome.storage.local.set({ blurSelectors: store }, () => {
+        // Notificar al popup para actualizar la UI
+        chrome.runtime.sendMessage({
+          action: "selectorRemoved",
+          domain: domain,
+          selector: selector
+        });
+      });
+    }
   });
 }
 
@@ -335,10 +369,28 @@ chrome.storage.onChanged.addListener((changes, area) => {
 /**
  * Al cargar, leemos extensionActive y editMode para aplicarlos
  * sin necesidad de refrescar la página.
+ * También verificamos si hay sugerencias predefinidas para este dominio.
  */
-chrome.storage.local.get(["extensionActive", "editMode"], data => {
+chrome.storage.local.get(["extensionActive", "editMode", "blurSelectors"], data => {
   const isActive = data.extensionActive ?? true;
   const isEditing = data.editMode ?? false;
+  const domain = window.location.hostname;
+  
+  // Comprobar si ya tenemos configuraciones predefinidas cargadas
+  let hasPresets = false;
+  if (data.blurSelectors && data.blurSelectors[domain]) {
+    hasPresets = data.blurSelectors[domain].some(item => 
+      typeof item === "object" && item.isPreset === true
+    );
+  }
+  
+  // Si este dominio tiene configuraciones predefinidas en el archivo predefined_blurs.js
+  // pero no están en storage, las cargaremos como sugerencias
+  if (window.PREDEFINED_BLURS && window.PREDEFINED_BLURS[domain] && !hasPresets) {
+    // Esto es para cuando el content script tenga acceso a las configuraciones predefinidas
+    // (normalmente esto se manejaría desde el popup, pero dejamos esta lógica por si acaso)
+    console.log("Dominio con configuraciones predefinidas disponibles:", domain);
+  }
 
   if (isActive) {
     applyStoredBlur();

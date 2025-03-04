@@ -5,8 +5,27 @@ document.addEventListener("DOMContentLoaded", () => {
   const toggleExtensionBtn = document.getElementById("toggleExtension");
   const extensionStateImage = document.getElementById("extensionStateImage");
   const domainWrapper = document.getElementById("domainWrapper");
+  const suggestedWrapper = document.getElementById("suggestedWrapper");
   const importBtn = document.getElementById("importBlur");
   const importBlurButton = document.getElementById("importBlurButton");
+  const tabs = document.querySelectorAll('.tab');
+  const tabContents = document.querySelectorAll('.tab-content');
+
+  // Gestión de pestañas
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      // Quitar la clase activa de todas las pestañas
+      tabs.forEach(t => t.classList.remove('active'));
+      tabContents.forEach(c => c.classList.remove('active'));
+      
+      // Añadir la clase activa a la pestaña clickeada
+      tab.classList.add('active');
+      
+      // Mostrar el contenido correspondiente
+      const tabId = tab.getAttribute('data-tab');
+      document.getElementById(tabId).classList.add('active');
+    });
+  });
 
   // Notificación flotante básica
   function showNotification(message, duration = 2000) {
@@ -145,8 +164,10 @@ document.addEventListener("DOMContentLoaded", () => {
       items.forEach((item, i) => {
         const sel = typeof item === "string" ? item : item.selector;
         const nm = (typeof item === "object" && item.name) ? item.name : getDefaultNameForSelector(sel);
+        const isPreset = typeof item === "object" && item.isPreset === true;
+        
         html += `
-          <div class="blur-item">
+          <div class="blur-item ${isPreset ? 'preset-item' : ''}">
             <span class="blur-name">${i + 1}. ${nm}</span>
             <div class="buttons-blur">
               <button class="rename-blur" data-domain="${domain}" data-selector="${sel}">✏️</button>
@@ -168,6 +189,113 @@ document.addEventListener("DOMContentLoaded", () => {
         btn.addEventListener("click", () => {
           removeBlur(btn.dataset.domain, btn.dataset.selector);
         });
+      });
+    });
+    
+    // Ahora también construimos las sugerencias
+    buildSuggestionsUI(domain);
+  }
+  
+  // Construir UI para sugerencias con animaciones
+  function buildSuggestionsUI(domain) {
+    // Si no tenemos sugerencias para este dominio, mostramos un mensaje
+    if (!PREDEFINED_BLURS[domain] || PREDEFINED_BLURS[domain].length === 0) {
+      suggestedWrapper.innerHTML = `
+        <div class="empty-state">
+          No hay sugerencias disponibles para <strong>${domain}</strong>
+        </div>
+      `;
+      return;
+    }
+    
+    // Obtenemos los selectores ya activos para no mostrarlos en las sugerencias
+    chrome.storage.local.get("blurSelectors", data => {
+      const store = data.blurSelectors || {};
+      const activeSelectors = (store[domain] || []).map(item => 
+        typeof item === "string" ? item : item.selector
+      );
+      
+      // Filtramos las sugerencias que no estén ya activas
+      const suggestions = PREDEFINED_BLURS[domain].filter(item => 
+        !activeSelectors.includes(item.selector)
+      );
+      
+      if (suggestions.length === 0) {
+        suggestedWrapper.innerHTML = `
+          <div class="empty-state">
+            Todas las sugerencias ya están activas en <strong>${domain}</strong>
+          </div>
+        `;
+        return;
+      }
+      
+      let html = `
+        <details open>
+          <summary>Sugerencias para ${domain} (${suggestions.length})</summary>
+          <div class="blur-items">
+      `;
+      
+      suggestions.forEach((item, i) => {
+        html += `
+          <div class="blur-item preset-item">
+            <span class="blur-name">${i + 1}. ${item.name}</span>
+            <div class="buttons-blur">
+              <button class="add-blur" data-domain="${domain}" data-selector="${item.selector}" data-name="${item.name}">➕</button>
+            </div>
+          </div>
+        `;
+      });
+      
+      html += `</div></details>`;
+      suggestedWrapper.innerHTML = html;
+      
+      // Listeners para agregar sugerencias
+      suggestedWrapper.querySelectorAll(".add-blur").forEach(btn => {
+        btn.addEventListener("click", () => {
+          addSuggestion(btn.dataset.domain, btn.dataset.selector, btn.dataset.name);
+        });
+      });
+    });
+  }
+  
+  // Agregar una sugerencia a los blurs activos
+  function addSuggestion(domain, selector, name) {
+    chrome.storage.local.get("blurSelectors", data => {
+      const store = data.blurSelectors || {};
+      if (!store[domain]) {
+        store[domain] = [];
+      }
+      
+      // Verificamos que no esté ya para evitar duplicados
+      const exists = store[domain].some(item => {
+        if (typeof item === "string") {
+          return item === selector;
+        } else {
+          return item.selector === selector;
+        }
+      });
+      
+      if (exists) {
+        showNotification("⚠️ Este elemento ya está activo");
+        return;
+      }
+      
+      // Agregamos la sugerencia marcada como preset
+      store[domain].push({ 
+        selector, 
+        name, 
+        isPreset: true 
+      });
+      
+      chrome.storage.local.set({ blurSelectors: store }, () => {
+        showNotification("✅ Sugerencia activada");
+        
+        // Actualizamos las interfaces
+        buildDomainUI(domain);
+        buildSuggestionsUI(domain);
+        
+        // Re-aplicar blur sin refrescar
+        reApplyBlurInTab();
       });
     });
   }
@@ -221,7 +349,11 @@ document.addEventListener("DOMContentLoaded", () => {
           if (it === selector) return { selector, name: newName };
           return it;
         } else {
-          if (it.selector === selector) return { selector, name: newName };
+          if (it.selector === selector) {
+            // Preservamos isPreset si existe
+            const isPreset = it.isPreset || false;
+            return { selector, name: newName, isPreset };
+          }
           return it;
         }
       });
@@ -346,6 +478,18 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     };
     reader.readAsText(file);
+  });
+
+  // Añadir oyente para mensajes del content script
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (msg.action === "selectorAdded" || msg.action === "selectorRemoved") {
+      chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+        if (tabs && tabs.length > 0) {
+          const domain = new URL(tabs[0].url).hostname;
+          buildDomainUI(domain);
+        }
+      });
+    }
   });
 
   // Inicializar

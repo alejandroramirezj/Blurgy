@@ -1,14 +1,14 @@
 {
   "manifest_version": 3,
   "name": "Blurgy - Fun Blur Manager",
-  "version": "10.5",
+  "version": "1.0",
   "description": "Difumina elementos en cualquier sitio.",
   "icons": {
     "16": "activado16.png",
     "48": "activado48.png",
     "128": "activado128.png"
   },
-  "permissions": ["activeTab","storage","scripting"],
+  "permissions": ["activeTab","storage"],
   "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "popup.html",
@@ -37,7 +37,8 @@
       "activado128.png",
       "desactivado16.png",
       "desactivado48.png",
-      "desactivado128.png"
+      "desactivado128.png",
+      "motion.js"
     ],
     "matches": ["<all_urls>"]
   }]
