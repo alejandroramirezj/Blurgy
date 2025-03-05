@@ -18,6 +18,9 @@
       --shadow: 0 2px 4px rgba(0,0,0,0.05);
       --radius: 12px;
       --radius-sm: 8px;
+      --spacing-sm: 4px;
+      --spacing-md: 8px;
+      --spacing-lg: 12px;
     }
 
     * {
@@ -28,9 +31,35 @@
     }
 
     body {
-      width: 420px;
-      padding: 16px;
+      width: 400px;
+      padding: 10px;
       background: var(--white);
+    }
+
+    /* Estilos para los elementos seleccionables */
+    .seleccionable-activo {
+      transition: outline 0.2s ease;
+      position: relative;
+      z-index: 100;
+    }
+
+    .seleccionable-activo:hover {
+      outline: 3px dashed #3498db;
+      cursor: pointer;
+      position: relative;
+      z-index: 110;
+    }
+
+    /* Estilos para el panel de acciones */
+    .acciones-elemento {
+      position: absolute;
+      top: -30px;
+      right: 0;
+      background: #fff;
+      border-radius: 4px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      display: flex;
+      z-index: 1000;
     }
 
     .header {
@@ -38,7 +67,7 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
-      margin-bottom: 20px;
+      margin-bottom: 12px;
       position: relative;
     }
     .title {
@@ -63,16 +92,16 @@
 
     #extensionStateImage {
       display: block;
-      margin: 0 auto 10px;
-      max-width: 100px;
+      margin: 0 auto var(--spacing-md);
+      max-width: 150px;
     }
 
     .btn {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      padding: 10px 16px;
+      gap: var(--spacing-sm);
+      padding: 8px var(--spacing-md);
       border: none;
       border-radius: var(--radius-sm);
       font-size: 14px;
@@ -80,6 +109,7 @@
       cursor: pointer;
       transition: 0.2s;
       width: 100%;
+      margin-bottom: var(--spacing-md);
     }
     .btn-primary {
       background: var(--primary);
@@ -100,15 +130,15 @@
       background: var(--white);
       border: 1px solid var(--secondary);
       border-radius: var(--radius);
-      padding: 12px;
-      margin-bottom: 16px;
+      padding: var(--spacing-md);
+      margin-bottom: var(--spacing-md);
     }
 
     .toggle-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 8px;
+      margin-bottom: var(--spacing-sm);
     }
 
     .toggle-switch {
@@ -160,26 +190,28 @@
       font-size: 16px;
       font-weight: 600;
       color: var(--text);
-      margin-bottom: 10px;
+      margin-bottom: var(--spacing-md);
     }
     
     details {
       border: 1px solid var(--secondary);
       border-radius: var(--radius-sm);
-      padding: 8px;
+      padding: 6px 8px;
       background: var(--secondary);
-      margin-bottom: 16px;
+      margin-bottom: 8px;
     }
     summary {
       cursor: pointer;
       font-weight: 600;
       list-style: none;
+      padding: 2px 0;
+      font-size: 14px;
     }
     .blur-items {
-      margin-top: 8px;
+      margin-top: var(--spacing-md);
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: var(--spacing-sm);
     }
     .blur-item {
       display: flex;
@@ -187,15 +219,17 @@
       justify-content: space-between;
       background: var(--white);
       border-radius: var(--radius-sm);
-      padding: 8px;
+      padding: 6px 8px;
+      margin-bottom: 2px;
     }
     .blur-name {
       outline: none;
       cursor: default;
+      padding: 2px;
     }
     .buttons-blur {
       display: flex;
-      gap: 8px;
+      gap: var(--spacing-md);
     }
     .rename-blur {
       background: none;
@@ -203,6 +237,7 @@
       color: var(--primary);
       cursor: pointer;
       transition: 0.2s;
+      padding: 4px;
     }
     .rename-blur:hover {
       background: #ddeefc;
@@ -213,6 +248,7 @@
       color: var(--danger);
       cursor: pointer;
       transition: 0.2s;
+      padding: 4px;
     }
     .remove-blur:hover {
       background: var(--danger-light);
@@ -224,6 +260,7 @@
       color: var(--success);
       cursor: pointer;
       transition: 0.2s;
+      padding: 4px;
     }
     .add-blur:hover {
       background: rgba(72, 187, 120, 0.1);
@@ -235,14 +272,15 @@
 
     .empty-state {
       text-align: center;
-      padding: 20px;
+      padding: var(--spacing-md);
       color: var(--text-light);
     }
 
     .actions {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px;
+      gap: var(--spacing-md);
+      margin-bottom: var(--spacing-md);
     }
     #importBlur {
       display: none;
@@ -251,6 +289,8 @@
     .toggle-title {
       display: flex;
       align-items: center;
+      font-size: 15px;
+      font-weight: 500;
     }
 
     #selectorStateImage {
@@ -258,7 +298,7 @@
     }
     
     .tab-container {
-      margin-bottom: 16px;
+      margin-bottom: var(--spacing-md);
     }
     
     .tabs {
@@ -267,7 +307,7 @@
     }
     
     .tab {
-      padding: 8px 16px;
+      padding: 8px 12px;
       cursor: pointer;
       border-bottom: 2px solid transparent;
       transition: all 0.2s;
@@ -280,11 +320,317 @@
     
     .tab-content {
       display: none;
-      padding-top: 16px;
+      padding-top: var(--spacing-md);
     }
     
     .tab-content.active {
       display: block;
+    }
+
+    /* Estilos para los iconos de modo */
+    .mode-icons {
+      display: flex;
+      justify-content: center;
+      margin-bottom: var(--spacing-md);
+      position: relative;
+      z-index: 100;
+      height: 32px;
+    }
+    
+    .mode-icon {
+      max-width: 32px;
+      max-height: 32px;
+      margin: 0 var(--spacing-sm);
+      position: relative;
+      z-index: 999;
+    }
+
+    /* Estilos para los selectores de modo */
+    .mode-selector {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 16px;
+      padding: 10px;
+      background: var(--secondary);
+      border-radius: var(--radius-sm);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      position: relative;
+      z-index: 120;
+    }
+    
+    .mode-option {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      transition: 0.2s;
+      margin: 0 4px;
+      position: relative;
+      width: 45%;
+      text-align: center;
+    }
+    
+    .mode-option:hover {
+      background: rgba(255, 255, 255, 0.5);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .mode-option.active {
+      background: var(--primary);
+      color: var(--white);
+      box-shadow: 0 2px 8px rgba(66, 153, 225, 0.3);
+    }
+    
+    .mode-option span {
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+    
+    .mode-icon {
+      width: 36px;
+      height: 36px;
+      margin-top: 8px;
+      object-fit: contain;
+      background-color: transparent;
+    }
+
+    /* Estilos para los iconos de estado grandes */
+    .status-icons {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: var(--spacing-md);
+      gap: var(--spacing-md);
+    }
+
+    .extension-state-image {
+      display: block;
+      margin: 0 auto var(--spacing-md);
+      max-width: 120px;
+    }
+
+    .state-image {
+      width: 120px;
+      height: 120px;
+      object-fit: contain;
+    }
+
+    /* Por defecto ocultamos ambos iconos */
+    #blurStateImage, #deleteStateImage {
+      display: none;
+    }
+
+    /* Contenedor para alinear los iconos horizontalmente */
+    .state-images-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: var(--spacing-md);
+      margin-bottom: 8px;
+      min-height: 90px;
+      position: relative;
+      z-index: 100;
+    }
+
+    /* Estilo para los iconos individuales */
+    .state-image {
+      max-width: 90px;
+      height: auto;
+      display: none;
+      z-index: 110;
+    }
+
+    /* Estilos para los personajes */
+    .characters-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: var(--spacing-md);
+      margin-bottom: 8px;
+    }
+
+    /* Wrapper para cada personaje y su etiqueta */
+    .character-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: var(--spacing-sm);
+    }
+
+    /* Estilo para las imágenes de personaje */
+    .character-image {
+      width: 80px;
+      height: 80px;
+      object-fit: contain;
+      transition: transform 0.3s ease, filter 0.3s ease;
+    }
+
+    /* Efecto hover para las imágenes */
+    .character-image:hover {
+      transform: scale(1.1);
+    }
+
+    /* Etiquetas debajo de los personajes */
+    .character-label {
+      margin-top: var(--spacing-sm);
+      font-size: 12px;
+      color: var(--text-light);
+      font-weight: 500;
+    }
+
+    /* Efectos para diferentes estados */
+    .character-image.active {
+      filter: drop-shadow(0 0 5px var(--primary));
+    }
+
+    .character-image.inactive {
+      filter: grayscale(100%) opacity(0.7);
+    }
+
+    .mascot-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .mascot-wrapper {
+      position: relative;
+    }
+
+    .mascot-image {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+
+    .state-indicators {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+    }
+
+    .state-indicator {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .count-badge {
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      border-radius: 50%;
+      padding: 2px 6px;
+      font-size: 12px;
+    }
+
+    .state-description {
+      text-align: center;
+      margin-top: var(--spacing-sm);
+      color: var(--text-light);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    /* Soporte para modo oscuro */
+    @media (prefers-color-scheme: dark) {
+      .state-image {
+        filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.2));
+      }
+    }
+
+    /* Estilos para botones de acción */
+    .btn-borrar, .btn-difuminar {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 4px;
+      border-radius: 3px;
+      margin: 0 4px;
+    }
+
+    .btn-borrar:hover {
+      background-color: #ffdddd;
+    }
+
+    .btn-difuminar:hover {
+      background-color: #ddffff;
+    }
+
+    /* Estilos para el toggle switch */
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-md);
+    }
+
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 24px;
+      margin-left: var(--spacing-sm);
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 24px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: #2196F3;
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(26px);
+    }
+
+    /* Nuevo estilo para iconos de modo */
+    .mode-icon {
+      font-size: 18px;
+      margin-top: 6px;
+      position: absolute;
+      bottom: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--white);
+      border-radius: 50%;
+      padding: 4px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      z-index: 125;
     }
   </style>
 </head>
@@ -296,7 +642,15 @@
     <span class="version">v1.0</span>
   </div>
 
-  <img id="extensionStateImage" src="activado.png" alt="Estado de la extensión" />
+  <!-- Contenedor para las imágenes de estado -->
+  <div class="characters-container">
+    <!-- Contenedor de imágenes de estado principal -->
+    <div class="state-images-container">
+      <img id="disabledStateImage" src="desactivado.png" alt="Desactivado" class="state-image" />
+      <img id="blurStateImage" src="blur.png" alt="Blur" class="state-image" style="display: none;" />
+      <img id="deleteStateImage" src="borrar.png" alt="Borrar" class="state-image" style="display: none;" />
+    </div>
+  </div>
 
   <button id="toggleExtension" class="btn btn-primary">
     <span class="toggle-icon">🎯</span>
@@ -313,7 +667,19 @@
         <span class="slider"></span>
       </label>
     </div>
-    <small style="color: var(--text-light)">Activa para seleccionar elementos a blurear</small>
+    <small style="color: var(--text-light)">Activa para seleccionar elementos</small>
+  </div>
+
+  <!-- Selector de modo (más visible y con iconos) -->
+  <div class="mode-selector">
+    <div class="mode-option" data-mode="blur">
+      <span>Modo Blur</span>
+      <!-- El icono se añadirá dinámicamente con JavaScript -->
+    </div>
+    <div class="mode-option" data-mode="delete">
+      <span>Modo Borrar</span>
+      <!-- El icono se añadirá dinámicamente con JavaScript -->
+    </div>
   </div>
 
   <div class="tab-container">
@@ -339,6 +705,11 @@
     <button id="importBlurButton" class="btn btn-secondary">
       <span>📥</span> Importar
     </button>
+  </div>
+
+  <div class="mode-icons">
+    <img id="blurStateImage" class="mode-icon" src="blur.png" alt="Modo Blur" style="display: none;" />
+    <img id="deleteStateImage" class="mode-icon" src="borrar.png" alt="Modo Borrado" style="display: none;" />
   </div>
 
   <script src="predefined_blurs.js"></script>

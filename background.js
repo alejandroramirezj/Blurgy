@@ -22,11 +22,12 @@ function setDefaultBlurSelectors() {
     // Comenzar con un objeto vacío
     const defaultBlurSelectors = {};
     
-    // Configuración inicial para que la extensión esté activa por defecto
+    // Configuración inicial para que la extensión esté DESACTIVADA por defecto
     chrome.storage.local.set({ 
         blurSelectors: defaultBlurSelectors, 
         editMode: false,
-        extensionActive: true
+        extensionActive: false, // Cambiado a false para que arranque desactivada
+        deleteMode: false // Añadimos el modo de borrado, por defecto desactivado
     }, () => {
         console.log("Configuración inicial establecida.");
     });
@@ -55,9 +56,9 @@ function syncIconWithState(forceValue) {
  * usando archivos distintos para cada tamaño (16, 48, 128).
  */
 function setIcon(isActive) {
-    const path16 = isActive ? "activado16.png" : "desactivado16.png";
-    const path48 = isActive ? "activado48.png" : "desactivado48.png";
-    const path128 = isActive ? "activado128.png" : "desactivado128.png";
+    const path16 = isActive ? "blur16.png" : "borrar16.png";
+    const path48 = isActive ? "blur48.png" : "borrar48.png";
+    const path128 = isActive ? "blur128.png" : "borrar128.png";
 
     chrome.action.setIcon({
         path: {

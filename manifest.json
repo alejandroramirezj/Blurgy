@@ -4,18 +4,18 @@
   "version": "1.0",
   "description": "Difumina elementos en cualquier sitio.",
   "icons": {
-    "16": "activado16.png",
-    "48": "activado48.png",
-    "128": "activado128.png"
+    "16": "blur16.png",
+    "48": "blur48.png",
+    "128": "blur128.png"
   },
   "permissions": ["activeTab","storage"],
   "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "activado16.png",
-      "48": "activado48.png",
-      "128": "activado128.png"
+      "16": "blur16.png",
+      "48": "blur48.png",
+      "128": "blur128.png"
     }
   },
   "background": {
@@ -30,11 +30,15 @@
   ],
   "web_accessible_resources": [{
     "resources": [
-      "activado.png",
+      "blur.png",
+      "borrar.png",
       "desactivado.png",
-      "activado16.png",
-      "activado48.png",
-      "activado128.png",
+      "blur16.png",
+      "blur48.png",
+      "blur128.png",
+      "borrar16.png",
+      "borrar48.png",
+      "borrar128.png",
       "desactivado16.png",
       "desactivado48.png",
       "desactivado128.png",
