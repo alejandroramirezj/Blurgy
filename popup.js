@@ -122,12 +122,12 @@ document.addEventListener("DOMContentLoaded", () => {
           deleteStateImage.style.display = "none";
           
           // Hacemos las imágenes de estado más grandes
-          blurStateImage.style.width = "48px";  // Aumentado de 38px a 48px
-          blurStateImage.style.height = "48px"; // Aumentado de 38px a 48px
-          deleteStateImage.style.width = "48px"; // Aumentado de 38px a 48px
-          deleteStateImage.style.height = "48px"; // Aumentado de 38px a 48px
-          disabledStateImage.style.width = "48px"; // Aumentado de 38px a 48px
-          disabledStateImage.style.height = "48px"; // Aumentado de 38px a 48px
+          blurStateImage.style.width = "100px";  // Aumentado de 38px a 100px
+          blurStateImage.style.height = "100px"; // Aumentado de 38px a 100px
+          deleteStateImage.style.width = "100px"; // Aumentado de 38px a 100px
+          deleteStateImage.style.height = "100px"; // Aumentado de 38px a 100px
+          disabledStateImage.style.width = "100px"; // Aumentado de 38px a 100px
+          disabledStateImage.style.height = "100px"; // Aumentado de 38px a 100px
           
           // Asegurar que los iconos tengan un z-index alto
           blurStateImage.style.zIndex = "1000";

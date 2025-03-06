@@ -670,15 +670,13 @@
     <small style="color: var(--text-light)">Activa para seleccionar elementos</small>
   </div>
 
-  <!-- Selector de modo (más visible y con iconos) -->
-  <div class="mode-selector">
+  <!-- Contenedor de modos en una nueva fila -->
+  <div class="mode-selector" id="modeSelector" style="display: none; grid-template-columns: 1fr 1fr; gap: var(--spacing-md); margin-top: var(--spacing-md);">
     <div class="mode-option" data-mode="blur">
       <span>Modo Blur</span>
-      <!-- El icono se añadirá dinámicamente con JavaScript -->
     </div>
     <div class="mode-option" data-mode="delete">
       <span>Modo Borrar</span>
-      <!-- El icono se añadirá dinámicamente con JavaScript -->
     </div>
   </div>
 

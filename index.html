@@ -404,7 +404,7 @@
      */
     setInterval(() => {
       const isDesactivado = blurgyLogo.src.includes('desactivado.png');
-      blurgyLogo.src = isDesactivado ? 'activado.png' : 'desactivado.png';
+      blurgyLogo.src = isDesactivado ? 'blur.png' : 'desactivado.png';
       blurgyTitle.style.filter = isDesactivado ? 'blur(5px)' : 'none';
     }, 5000);
 
@@ -417,7 +417,7 @@
       const isDesactivado = toggleImage.src.includes('desactivado.png');
 
       if (isDesactivado) {
-        toggleImage.src = 'activado.png';
+        toggleImage.src = 'blur.png';
         tooltip.textContent = 'Ahora no veo na';
         dataTable.classList.add('blurred');
       } else {
