@@ -1,10 +1,15 @@
 // background.js
 
-// Para compatibilidad con Manifest V3, necesitamos manejar los mensajes directamente
+// Para compatibilidad con Manifest V3 y evitar errores de "You do not have a background page"
+// Manejador de mensajes que responde inmediatamente a cualquier consulta
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Responder inmediatamente para evitar errores de comunicación
-  sendResponse({ success: true, fromBackground: true });
-  return true;
+  if (message && message.action === "ping") {
+    sendResponse({ success: true, source: "background", alive: true });
+  } else {
+    sendResponse({ success: true, source: "background" });
+  }
+  return true; // Mantener el canal abierto
 });
 
 // Al instalar/iniciar, sincronizamos el icono con el estado en storage y configuramos los blurs por defecto.
@@ -42,18 +47,22 @@ function setDefaultBlurSelectors() {
   const defaultBlurSelectors = {};
   
   // Configuración inicial para que la extensión esté DESACTIVADA por defecto
-  chrome.storage.local.set({ 
-    blurSelectors: defaultBlurSelectors, 
-    editMode: false,
-    extensionActive: false, // Cambiado a false para que arranque desactivada
-    deleteMode: false // Añadimos el modo de borrado, por defecto desactivado
-  }, () => {
-    if (chrome.runtime.lastError) {
-      console.error("Error al establecer configuración inicial:", chrome.runtime.lastError);
-      return;
-    }
-    console.log("Configuración inicial establecida.");
-  });
+  try {
+    chrome.storage.local.set({ 
+      blurSelectors: defaultBlurSelectors, 
+      editMode: false,
+      extensionActive: false, // Cambiado a false para que arranque desactivada
+      deleteMode: false // Añadimos el modo de borrado, por defecto desactivado
+    }, () => {
+      if (chrome.runtime.lastError) {
+        console.error("Error al establecer configuración inicial:", chrome.runtime.lastError);
+        return;
+      }
+      console.log("Configuración inicial establecida.");
+    });
+  } catch (error) {
+    console.error("Error al establecer la configuración inicial:", error);
+  }
   
   // Asegurarnos que predefined_blurs.js está cargado correctamente
   // Nota: esto se gestionará principalmente desde el popup
@@ -64,17 +73,21 @@ function setDefaultBlurSelectors() {
  * a menos que se provea 'forceValue' (true|false).
  */
 function syncIconWithState(forceValue) {
-  if (typeof forceValue === "boolean") {
-    setIcon(forceValue);
-  } else {
-    chrome.storage.local.get("extensionActive", data => {
-      if (chrome.runtime.lastError) {
-        console.error("Error al obtener extensionActive:", chrome.runtime.lastError);
-        return;
-      }
-      const isActive = data.extensionActive ?? false; // Por defecto, desactivada
-      setIcon(isActive);
-    });
+  try {
+    if (typeof forceValue === "boolean") {
+      setIcon(forceValue);
+    } else {
+      chrome.storage.local.get("extensionActive", data => {
+        if (chrome.runtime.lastError) {
+          console.error("Error al obtener extensionActive:", chrome.runtime.lastError);
+          return;
+        }
+        const isActive = data.extensionActive ?? false; // Por defecto, desactivada
+        setIcon(isActive);
+      });
+    }
+  } catch (error) {
+    console.error("Error en syncIconWithState:", error);
   }
 }
 

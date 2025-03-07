@@ -1,4 +1,16 @@
 document.addEventListener("DOMContentLoaded", () => {
+  // Definición de respaldo para PREDEFINED_BLURS en caso de que no esté definido
+  if (typeof PREDEFINED_BLURS === 'undefined') {
+    console.warn("PREDEFINED_BLURS no está definido, usando objeto vacío");
+    window.PREDEFINED_BLURS = {};
+  }
+  
+  // Verificar disponibilidad del content script al inicio
+  let contentScriptAvailable = false;
+  
+  // Variable global para almacenar el dominio actual
+  let currentDomain = '';
+  
   const toggleEdit = document.getElementById("toggleEdit");
   const toggleExtensionBtn = document.getElementById("toggleExtension");
   const blurStateImage = document.getElementById("blurStateImage");
@@ -11,6 +23,69 @@ document.addEventListener("DOMContentLoaded", () => {
   const modeOptions = document.querySelectorAll('.mode-option');
   const tabs = document.querySelectorAll('.tab');
   const tabContents = document.querySelectorAll('.tab-content');
+
+  // Función para verificar la disponibilidad del content script
+  function checkContentScriptAvailability() {
+    return new Promise(resolve => {
+      chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+        if (!tabs || tabs.length === 0) {
+          contentScriptAvailable = false;
+          resolve(false);
+          return;
+        }
+        
+        const activeTab = tabs[0];
+        if (!activeTab || !activeTab.id || activeTab.id <= 0) {
+          contentScriptAvailable = false;
+          resolve(false);
+          return;
+        }
+        
+        // Intentar obtener el dominio actual
+        try {
+          currentDomain = new URL(activeTab.url).hostname;
+        } catch (error) {
+          console.log("No se pudo obtener el dominio:", error.message);
+          currentDomain = '';
+        }
+        
+        // Verificar si la pestaña permite content scripts
+        if (!activeTab.url || activeTab.url.startsWith("chrome:") || 
+            activeTab.url.startsWith("chrome-extension:") || 
+            activeTab.url.startsWith("about:")) {
+          contentScriptAvailable = false;
+          resolve(false);
+          return;
+        }
+        
+        try {
+          chrome.tabs.sendMessage(activeTab.id, { action: "ping" }, response => {
+            if (chrome.runtime.lastError) {
+              console.log("Content script no disponible en esta página");
+              contentScriptAvailable = false;
+              resolve(false);
+            } else {
+              console.log("Content script disponible:", response);
+              contentScriptAvailable = true;
+              resolve(true);
+            }
+          });
+        } catch (error) {
+          console.log("Error al comunicarse con content script:", error.message);
+          contentScriptAvailable = false;
+          resolve(false);
+        }
+      });
+    });
+  }
+
+  // Verificar disponibilidad al cargar el popup
+  checkContentScriptAvailability().then(available => {
+    console.log("Estado del content script:", available ? "Disponible" : "No disponible");
+    
+    // Continuar inicialización independientemente de la disponibilidad
+    init();
+  });
 
   // Gestión de pestañas
   tabs.forEach(tab => {
@@ -179,37 +254,49 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       
       try {
-        // Usar función noop para el callback para evitar errores si no hay respuesta
+        // Función simple que no hace nada pero captura el lastError
         const noop = () => {
           if (chrome.runtime.lastError) {
             // Solo registrar el error, no mostrar al usuario
-            console.warn("Error al comunicarse con content script (esperado):", chrome.runtime.lastError);
+            console.log("Error esperado (no problemático):", chrome.runtime.lastError.message);
+            return true; // Devolver true para indicar que el error fue manejado
           }
         };
         
-        chrome.tabs.sendMessage(
-          activeTab.id,
-          { action: "reApply", timestamp: Date.now() },
-          noop
-        );
+        // Primero comprobar si el content script está disponible
+        chrome.tabs.sendMessage(activeTab.id, { action: "ping" }, response => {
+          if (chrome.runtime.lastError) {
+            console.log("Content script no disponible (normal en algunas páginas)");
+            return;
+          }
+          
+          // Si llegamos aquí, el content script está disponible
+          chrome.tabs.sendMessage(
+            activeTab.id,
+            { action: "reApply", timestamp: Date.now() },
+            noop
+          );
+        });
       } catch (error) {
-        console.error("Error al enviar mensaje para re-aplicar:", error);
+        console.log("Error controlado al enviar mensaje:", error.message);
       }
     });
   }
 
-  // Función actualizada para comunicarse de forma más robusta con el content script
+  // Función mejorada para comunicarse con el content script con detección previa
   function sendMessageToContentScript(message) {
     return new Promise((resolve, reject) => {
       chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
         if (!tabs || tabs.length === 0) {
-          reject(new Error("No se encontraron pestañas activas"));
+          console.log("No se encontraron pestañas activas");
+          resolve(null); // Resolver con null en lugar de rechazar
           return;
         }
         
         const activeTab = tabs[0];
         if (!activeTab || !activeTab.id || activeTab.id <= 0) {
-          reject(new Error("La pestaña activa no es válida"));
+          console.log("Pestaña activa no válida");
+          resolve(null);
           return;
         }
         
@@ -217,27 +304,38 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!activeTab.url || activeTab.url.startsWith("chrome:") || 
             activeTab.url.startsWith("chrome-extension:") || 
             activeTab.url.startsWith("about:")) {
-          reject(new Error("La pestaña activa no permite content scripts"));
+          console.log("Pestaña no permite content scripts:", activeTab.url);
+          resolve(null);
           return;
         }
         
         try {
-          chrome.tabs.sendMessage(
-            activeTab.id,
-            { ...message, timestamp: Date.now() },
-            response => {
-              if (chrome.runtime.lastError) {
-                console.warn("Error en comunicación con content script:", chrome.runtime.lastError);
-                // Resolver con null en lugar de rechazar para manejar errores esperados
-                resolve(null);
-                return;
-              }
-              resolve(response);
+          // Verificar primero si el content script está disponible
+          chrome.tabs.sendMessage(activeTab.id, { action: "ping" }, pingResponse => {
+            // Si hay error, significa que el content script no está disponible
+            if (chrome.runtime.lastError) {
+              console.log("Content script no disponible:", chrome.runtime.lastError.message);
+              resolve(null);
+              return;
             }
-          );
+            
+            // Si el content script está disponible, enviar el mensaje real
+            chrome.tabs.sendMessage(
+              activeTab.id,
+              { ...message, timestamp: Date.now() },
+              response => {
+                if (chrome.runtime.lastError) {
+                  console.log("Error esperado:", chrome.runtime.lastError.message);
+                  resolve(null);
+                  return;
+                }
+                resolve(response);
+              }
+            );
+          });
         } catch (error) {
-          console.error("Error al enviar mensaje:", error);
-          reject(error);
+          console.log("Error controlado:", error.message);
+          resolve(null); // Resolver con null para evitar romper promesas
         }
       });
     });
@@ -253,12 +351,18 @@ document.addEventListener("DOMContentLoaded", () => {
         refreshExtensionToggleUI();
         updateStateIcons();
         
-        // Usar la nueva función
+        // Usar la nueva función - manejar silenciosamente errores
         sendMessageToContentScript({
           action: "toggleExtension",
           enable: newState
+        }).then(response => {
+          // Solo procesar respuesta si no es null
+          if (response) {
+            console.log("Respuesta del content script:", response);
+          }
         }).catch(error => {
-          console.error("Error al activar/desactivar extensión:", error);
+          // Nunca debería llegar aquí porque siempre resolvemos
+          console.log("Error inesperado:", error.message);
         });
         
         showNotification(newState ? "🎉 Extensión activada" : "👋 Extensión desactivada");
@@ -1163,7 +1267,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
   }
-  init();
 
   // Función para actualizar la visualización de los personajes
   function updateCharacters() {

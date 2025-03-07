@@ -448,6 +448,7 @@ function removeSelectorFromStorage(selector, type = "blur") {
 
 /**
  * Recibe mensajes desde popup.js para:
+ *  - ping: verificar si el content script está cargado
  *  - toggleExtension: activar/desactivar modificaciones
  *  - toggleEditMode: activar/desactivar modo edición
  *  - changeMode: cambiar entre modo blur y borrar
@@ -461,7 +462,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   try {
-    if (msg.action === "toggleExtension") {
+    // Mensaje de ping para verificar que el content script está cargado
+    if (msg.action === "ping") {
+      sendResponse({ success: true, pong: true });
+      return true;
+    }
+    else if (msg.action === "toggleExtension") {
       if (msg.enable) {
         // Solo aplicar modificaciones si la extensión está activa
         applyStoredModifications();
