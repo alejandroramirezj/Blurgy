@@ -159,73 +159,117 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateStateIcons() {
     chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
       if (tabs && tabs.length > 0) {
-        const domain = new URL(tabs[0].url).hostname;
-        
-        chrome.storage.local.get(["extensionActive", "blurSelectors", "deleteSelectors"], data => {
-          const isActive = data.extensionActive ?? false;
-          const disabledStateImage = document.getElementById("disabledStateImage");
-          const blurStateImage = document.getElementById("blurStateImage");
-          const deleteStateImage = document.getElementById("deleteStateImage");
+        try {
+          const domain = new URL(tabs[0].url).hostname;
           
-          // Verificar si existen los elementos
-          if (!disabledStateImage || !blurStateImage || !deleteStateImage) {
-            console.error("No se encontraron todos los elementos de estado en el DOM");
-            return;
-          }
-          
-          // Primero ocultamos todos los iconos
-          disabledStateImage.style.display = "none";
-          blurStateImage.style.display = "none";
-          deleteStateImage.style.display = "none";
-          
-          // Hacemos las imágenes de estado más grandes
-          blurStateImage.style.width = "100px";
-          blurStateImage.style.height = "100px";
-          deleteStateImage.style.width = "100px";
-          deleteStateImage.style.height = "100px";
-          disabledStateImage.style.width = "100px";
-          disabledStateImage.style.height = "100px";
-          
-          // Asegurar que los iconos tengan un z-index alto
-          blurStateImage.style.zIndex = "1000";
-          deleteStateImage.style.zIndex = "1000";
-          disabledStateImage.style.zIndex = "1000";
-          
-          if (!isActive) {
-            // Si la extensión está desactivada, SIEMPRE mostramos el icono de desactivado
-            disabledStateImage.style.display = "block";
-            return;
-          }
-          
-          // Si está activada, verificamos qué elementos hay en la página
-          const hasBlurElements = data.blurSelectors && 
-                               data.blurSelectors[domain] && 
-                               data.blurSelectors[domain].length > 0;
-          
-          const hasDeleteElements = data.deleteSelectors && 
-                                 data.deleteSelectors[domain] && 
-                                 data.deleteSelectors[domain].length > 0;
-          
-          // Mostrar los iconos correspondientes
-          if (hasBlurElements) {
-            blurStateImage.style.display = "block";
-            blurStateImage.style.zIndex = "10000"; // Aseguramos que esté por encima
-          }
-          
-          if (hasDeleteElements) {
-            deleteStateImage.style.display = "block";
-            deleteStateImage.style.zIndex = "10000"; // Aseguramos que esté por encima
-          }
-          
-          // Si no hay ningún elemento pero la extensión está activa, mostramos el icono de blur por defecto
-          if (!hasBlurElements && !hasDeleteElements) {
-            blurStateImage.style.display = "block";
-            blurStateImage.style.zIndex = "10000"; // Aseguramos que esté por encima
-          }
-          
-          // Usar la función segura
-          safeUpdateCharacters();
-        });
+          chrome.storage.local.get(["extensionActive", "blurSelectors", "deleteSelectors"], data => {
+            const isActive = data.extensionActive ?? false;
+            const disabledStateImage = document.getElementById("disabledStateImage");
+            const blurStateImage = document.getElementById("blurStateImage");
+            const deleteStateImage = document.getElementById("deleteStateImage");
+            
+            // Verificar si existen los elementos
+            if (!disabledStateImage || !blurStateImage || !deleteStateImage) {
+              console.error("No se encontraron todos los elementos de estado en el DOM");
+              return;
+            }
+            
+            // Primero ocultamos todos los iconos
+            disabledStateImage.style.display = "none";
+            blurStateImage.style.display = "none";
+            deleteStateImage.style.display = "none";
+            
+            // Hacemos las imágenes de estado más grandes
+            blurStateImage.style.width = "100px";
+            blurStateImage.style.height = "100px";
+            deleteStateImage.style.width = "100px";
+            deleteStateImage.style.height = "100px";
+            disabledStateImage.style.width = "100px";
+            disabledStateImage.style.height = "100px";
+            
+            // Asegurar que los iconos tengan un z-index alto
+            blurStateImage.style.zIndex = "1000";
+            deleteStateImage.style.zIndex = "1000";
+            disabledStateImage.style.zIndex = "1000";
+            
+            // Verificar si hay elementos configurados
+            const hasBlurElements = data.blurSelectors && 
+                                 data.blurSelectors[domain] && 
+                                 data.blurSelectors[domain].length > 0;
+            
+            const hasDeleteElements = data.deleteSelectors && 
+                                   data.deleteSelectors[domain] && 
+                                   data.deleteSelectors[domain].length > 0;
+            
+            // Si la extensión está desactivada
+            if (!isActive) {
+              // Crear un segundo disabledStateImage si no existe y se necesita
+              let secondDisabledImage = document.getElementById("secondDisabledStateImage");
+              if (!secondDisabledImage && hasBlurElements && hasDeleteElements) {
+                secondDisabledImage = document.createElement("img");
+                secondDisabledImage.id = "secondDisabledStateImage";
+                secondDisabledImage.src = "desactivado.png";
+                secondDisabledImage.alt = "Desactivado 2";
+                secondDisabledImage.className = "state-image";
+                secondDisabledImage.style.width = "100px";
+                secondDisabledImage.style.height = "100px";
+                secondDisabledImage.style.zIndex = "1000";
+                
+                // Insertar después del primer disabledStateImage
+                disabledStateImage.parentNode.insertBefore(secondDisabledImage, disabledStateImage.nextSibling);
+              } else if (secondDisabledImage && (!hasBlurElements || !hasDeleteElements)) {
+                // Eliminar si ya no se necesita
+                secondDisabledImage.remove();
+              }
+              
+              // Si hay elementos tanto de blur como de borrado configurados, mostrar dos iconos de desactivado
+              if (hasBlurElements && hasDeleteElements) {
+                disabledStateImage.style.display = "block";
+                if (secondDisabledImage) secondDisabledImage.style.display = "block";
+              } 
+              // Si solo hay elementos de un tipo, mostrar solo un icono de desactivado
+              else if (hasBlurElements || hasDeleteElements) {
+                disabledStateImage.style.display = "block";
+                if (secondDisabledImage) secondDisabledImage.style.display = "none";
+              }
+              // Si no hay elementos configurados, mostrar un icono de desactivado
+              else {
+                disabledStateImage.style.display = "block";
+                if (secondDisabledImage) secondDisabledImage.style.display = "none";
+              }
+              
+              return;
+            }
+            
+            // Asegurarse de eliminar la segunda imagen de desactivado si existe y la extensión está activa
+            const secondDisabledImage = document.getElementById("secondDisabledStateImage");
+            if (secondDisabledImage) {
+              secondDisabledImage.style.display = "none";
+            }
+            
+            // Si está activada, verificamos qué elementos hay en la página y mostramos los iconos correspondientes
+            if (hasBlurElements) {
+              blurStateImage.style.display = "block";
+              blurStateImage.style.zIndex = "10000"; // Aseguramos que esté por encima
+            }
+            
+            if (hasDeleteElements) {
+              deleteStateImage.style.display = "block";
+              deleteStateImage.style.zIndex = "10000"; // Aseguramos que esté por encima
+            }
+            
+            // Si no hay ningún elemento pero la extensión está activa, mostramos el icono de blur por defecto
+            if (!hasBlurElements && !hasDeleteElements) {
+              blurStateImage.style.display = "block";
+              blurStateImage.style.zIndex = "10000"; // Aseguramos que esté por encima
+            }
+            
+            // Usar la función segura
+            safeUpdateCharacters();
+          });
+        } catch (error) {
+          console.error("Error al actualizar iconos de estado:", error);
+        }
       }
     });
   }
@@ -353,8 +397,8 @@ document.addEventListener("DOMContentLoaded", () => {
         
         // Usar la nueva función - manejar silenciosamente errores
         sendMessageToContentScript({
-          action: "toggleExtension",
-          enable: newState
+              action: "toggleExtension",
+              enable: newState
         }).then(response => {
           // Solo procesar respuesta si no es null
           if (response) {
@@ -548,63 +592,111 @@ document.addEventListener("DOMContentLoaded", () => {
     // Primero obtenemos el dominio actual de la pestaña activa
     chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
       if (tabs && tabs.length > 0) {
-        const domain = new URL(tabs[0].url).hostname;
-        
-        chrome.storage.local.get(["extensionActive", "blurSelectors", "deleteSelectors"], data => {
-          const isActive = data.extensionActive ?? false;
+        try {
+          const domain = new URL(tabs[0].url).hostname;
           
-          // Verificar si hay elementos con blur en este dominio
-          const blurActive = isActive && 
-            data.blurSelectors && 
-            data.blurSelectors[domain] && 
-            data.blurSelectors[domain].length > 0;
-          
-          // Verificar si hay elementos borrados en este dominio
-          const deleteActive = isActive && 
-            data.deleteSelectors && 
-            data.deleteSelectors[domain] && 
-            data.deleteSelectors[domain].length > 0;
-          
-          // Actualizar visibilidad de los iconos - asegurarse que están visibles
-          const blurStateImage = document.getElementById("blurStateImage");
-          const deleteStateImage = document.getElementById("deleteStateImage");
-          const disabledStateImage = document.getElementById("disabledStateImage");
-          
-          // Primero ocultamos todos los iconos
-          if (disabledStateImage) disabledStateImage.style.display = "none";
-          if (blurStateImage) blurStateImage.style.display = "none";
-          if (deleteStateImage) deleteStateImage.style.display = "none";
-          
-          if (!isActive) {
-            // Si la extensión está desactivada, mostramos el icono de desactivado
-            if (disabledStateImage) disabledStateImage.style.display = "block";
-            return;
-          }
-          
-          // Mostrar los iconos correspondientes según el estado
-          if (blurActive && blurStateImage) {
-            blurStateImage.style.display = "block";
-            blurStateImage.style.zIndex = "9999";
-          }
-          
-          if (deleteActive && deleteStateImage) {
-            deleteStateImage.style.display = "block";
-            deleteStateImage.style.zIndex = "9999";
-          }
-          
-          // Si no hay ningún elemento pero la extensión está activa, mostramos el icono de blur por defecto
-          if (!blurActive && !deleteActive && blurStateImage) {
-            blurStateImage.style.display = "block";
-            blurStateImage.style.zIndex = "9999";
-          }
-          
-          // Usar la función segura
-          safeUpdateCharacters();
-        });
+          chrome.storage.local.get(["extensionActive", "blurSelectors", "deleteSelectors"], data => {
+            const isActive = data.extensionActive ?? false;
+            
+            // Verificar si hay elementos con blur en este dominio
+            const hasBlurElements = data.blurSelectors && 
+              data.blurSelectors[domain] && 
+              data.blurSelectors[domain].length > 0;
+            
+            // Verificar si hay elementos borrados en este dominio
+            const hasDeleteElements = data.deleteSelectors && 
+              data.deleteSelectors[domain] && 
+              data.deleteSelectors[domain].length > 0;
+            
+            // Actualizar visibilidad de los iconos - asegurarse que están visibles
+            const blurStateImage = document.getElementById("blurStateImage");
+            const deleteStateImage = document.getElementById("deleteStateImage");
+            const disabledStateImage = document.getElementById("disabledStateImage");
+            
+            // Verificamos que existan
+            if (!blurStateImage || !deleteStateImage || !disabledStateImage) {
+              console.error("No se encontraron todos los elementos de estado en el DOM");
+              return;
+            }
+            
+            // Primero ocultamos todos los iconos
+            if (disabledStateImage) disabledStateImage.style.display = "none";
+            if (blurStateImage) blurStateImage.style.display = "none";
+            if (deleteStateImage) deleteStateImage.style.display = "none";
+            
+            // Si la extensión está desactivada, mostramos el icono de desactivado según la configuración
+            if (!isActive) {
+              // Crear un segundo disabledStateImage si no existe y se necesita
+              let secondDisabledImage = document.getElementById("secondDisabledStateImage");
+              if (!secondDisabledImage && hasBlurElements && hasDeleteElements) {
+                secondDisabledImage = document.createElement("img");
+                secondDisabledImage.id = "secondDisabledStateImage";
+                secondDisabledImage.src = "desactivado.png";
+                secondDisabledImage.alt = "Desactivado 2";
+                secondDisabledImage.className = "state-image";
+                secondDisabledImage.style.width = "100px";
+                secondDisabledImage.style.height = "100px";
+                secondDisabledImage.style.zIndex = "1000";
+                
+                // Insertar después del primer disabledStateImage
+                disabledStateImage.parentNode.insertBefore(secondDisabledImage, disabledStateImage.nextSibling);
+              } else if (secondDisabledImage && (!hasBlurElements || !hasDeleteElements)) {
+                // Eliminar si ya no se necesita
+                secondDisabledImage.remove();
+              }
+              
+              // Si hay elementos tanto de blur como de borrado configurados, mostrar dos iconos de desactivado
+              if (hasBlurElements && hasDeleteElements) {
+                disabledStateImage.style.display = "block";
+                if (secondDisabledImage) secondDisabledImage.style.display = "block";
+              } 
+              // Si solo hay elementos de un tipo, mostrar solo un icono de desactivado
+              else if (hasBlurElements || hasDeleteElements) {
+                disabledStateImage.style.display = "block";
+                if (secondDisabledImage) secondDisabledImage.style.display = "none";
+              }
+              // Si no hay elementos configurados, mostrar un icono de desactivado
+              else {
+                disabledStateImage.style.display = "block";
+                if (secondDisabledImage) secondDisabledImage.style.display = "none";
+              }
+              
+              return;
+            }
+            
+            // Asegurarse de eliminar la segunda imagen de desactivado si existe y la extensión está activa
+            const secondDisabledImage = document.getElementById("secondDisabledStateImage");
+            if (secondDisabledImage) {
+              secondDisabledImage.style.display = "none";
+            }
+            
+            // Mostrar los iconos correspondientes según el estado activo
+            if (hasBlurElements && blurStateImage) {
+              blurStateImage.style.display = "block";
+              blurStateImage.style.zIndex = "9999";
+            }
+            
+            if (hasDeleteElements && deleteStateImage) {
+              deleteStateImage.style.display = "block";
+              deleteStateImage.style.zIndex = "9999";
+            }
+            
+            // Si no hay ningún elemento pero la extensión está activa, mostramos el icono de blur por defecto
+            if (!hasBlurElements && !hasDeleteElements && blurStateImage) {
+              blurStateImage.style.display = "block";
+              blurStateImage.style.zIndex = "9999";
+            }
+            
+            // Usar la función segura
+            safeUpdateCharacters();
+          });
+        } catch (error) {
+          console.error("Error al refrescar iconos de estado:", error);
+        }
       }
     });
   }
-
+  
   // Manejar el cambio de modo (blur o borrar)
   modeOptions.forEach(option => {
     option.addEventListener('click', (e) => {
@@ -1194,11 +1286,11 @@ document.addEventListener("DOMContentLoaded", () => {
       chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
         if (tabs && tabs.length > 0) {
           try {
-            const domain = new URL(tabs[0].url).hostname;
-            console.log("Dominio actual:", domain);
-            
-            // Construir UI para dominio actual
-            buildDomainUI(domain);
+          const domain = new URL(tabs[0].url).hostname;
+          console.log("Dominio actual:", domain);
+          
+          // Construir UI para dominio actual
+          buildDomainUI(domain);
           } catch (error) {
             console.error("Error al obtener dominio de la pestaña:", error);
           }
@@ -1271,24 +1363,24 @@ document.addEventListener("DOMContentLoaded", () => {
   // Función para actualizar la visualización de los personajes
   function updateCharacters() {
     console.log("Actualizando personajes...");
-    
+        
     // Verificar si los elementos existen antes de intentar manipularlos
-    const blurCharacterImg = document.getElementById("blurCharacterImage");
-    const deleteCharacterImg = document.getElementById("deleteCharacterImage");
-    const blurCharacter = document.querySelector(".blur-character");
-    const deleteCharacter = document.querySelector(".delete-character");
-    
+          const blurCharacterImg = document.getElementById("blurCharacterImage");
+          const deleteCharacterImg = document.getElementById("deleteCharacterImage");
+          const blurCharacter = document.querySelector(".blur-character");
+          const deleteCharacter = document.querySelector(".delete-character");
+          
     // Si no existen los elementos, simplemente salimos de la función sin error
     if (!blurCharacterImg && !deleteCharacterImg && !blurCharacter && !deleteCharacter) {
       console.log("No se encontraron elementos de personajes en el DOM - omitiendo actualización");
-      return;
-    }
-    
+            return;
+          }
+          
     chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
       if (!tabs || tabs.length === 0) {
         console.log("No hay pestañas activas para actualizar personajes");
-        return;
-      }
+            return;
+          }
       
       try {
         const domain = new URL(tabs[0].url).hostname;
@@ -1320,9 +1412,9 @@ document.addEventListener("DOMContentLoaded", () => {
           
           if (blurCharacter) {
             if (isActive && hasBlurElements) {
-              blurCharacter.classList.add("active");
-            } else {
-              blurCharacter.classList.remove("active");
+            blurCharacter.classList.add("active");
+          } else {
+            blurCharacter.classList.remove("active");
             }
           }
           
@@ -1333,9 +1425,9 @@ document.addEventListener("DOMContentLoaded", () => {
           
           if (deleteCharacter) {
             if (isActive && hasDeleteElements) {
-              deleteCharacter.classList.add("active");
-            } else {
-              deleteCharacter.classList.remove("active");
+            deleteCharacter.classList.add("active");
+          } else {
+            deleteCharacter.classList.remove("active");
             }
           }
         });
