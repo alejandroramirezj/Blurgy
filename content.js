@@ -455,95 +455,93 @@ function removeSelectorFromStorage(selector, type = "blur") {
  *  - reApply: volver a aplicar las modificaciones sin refrescar
  */
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  // Verificar que tenemos un mensaje válido
-  if (!msg || typeof msg !== 'object') {
-    sendResponse({ success: false, error: "Mensaje inválido" });
-    return true;
+  // Verificar que tenemos un mensaje válido y que chrome.runtime está disponible
+  if (!msg || typeof msg !== 'object' || !chrome.runtime) {
+    console.warn('Mensaje inválido o runtime no disponible');
+    sendResponse({ success: false, error: "Mensaje inválido o runtime no disponible" });
+    return false; // No esperamos respuesta asíncrona
   }
 
   try {
     // Mensaje de ping para verificar que el content script está cargado
     if (msg.action === "ping") {
       sendResponse({ success: true, pong: true });
-      return true;
+      return false; // No esperamos respuesta asíncrona
     }
-    else if (msg.action === "toggleExtension") {
-      if (msg.enable) {
-        // Solo aplicar modificaciones si la extensión está activa
-        applyStoredModifications();
-        startObserver();
-      } else {
-        turnOffExtension();
-        // Desactivar también el modo edición cuando se desactiva la extensión
-        disableSelectionMode();
-      }
-      sendResponse({ success: true });
-    }
-    else if (msg.action === "toggleEditMode") {
-      // Solo activar modo edición si la extensión está activa
-      chrome.storage.local.get("extensionActive", data => {
-        if (chrome.runtime.lastError) {
-          console.error("Error al verificar extensionActive:", chrome.runtime.lastError);
-          sendResponse({ success: false, error: chrome.runtime.lastError.message });
-          return;
-        }
+    
+    // Para mensajes que requieren respuesta asíncrona
+    const handleAsyncMessage = async () => {
+      try {
+        const data = await new Promise((resolve) => {
+          chrome.storage.local.get("extensionActive", resolve);
+        });
         
         const isActive = data.extensionActive ?? false;
         
-        if (isActive && msg.enable) {
-          // Actualizar modo borrado si es necesario
-          if (msg.deleteMode !== undefined) {
+        switch(msg.action) {
+          case "toggleExtension":
+            if (msg.enable) {
+              await applyStoredModifications();
+              startObserver();
+            } else {
+              turnOffExtension();
+              disableSelectionMode();
+            }
+            return { success: true };
+            
+          case "toggleEditMode":
+            if (isActive && msg.enable) {
+              if (msg.deleteMode !== undefined) {
+                deleteMode = msg.deleteMode;
+              }
+              enableSelectionMode();
+            } else {
+              disableSelectionMode();
+            }
+            return { success: true };
+            
+          case "changeMode":
+          case "changeDeleteMode":
             deleteMode = msg.deleteMode;
-          }
-          enableSelectionMode();
-        } else {
-          disableSelectionMode();
+            document.querySelectorAll(".hover-highlight").forEach(el => {
+              if (deleteMode) {
+                el.classList.add("delete-mode");
+              } else {
+                el.classList.remove("delete-mode");
+              }
+            });
+            return { success: true };
+            
+          case "reApply":
+            if (isActive) {
+              await reApplyModifications();
+            }
+            return { success: true };
+            
+          default:
+            return { success: false, error: "Acción desconocida: " + msg.action };
         }
-        sendResponse({ success: true });
-      });
-      return true; // Importante para respuestas asíncronas
-    }
-    else if (msg.action === "changeMode" || msg.action === "changeDeleteMode") {
-      deleteMode = msg.deleteMode;
-      
-      // Actualizar cualquier elemento que pueda estar resaltado
-      document.querySelectorAll(".hover-highlight").forEach(el => {
-        if (deleteMode) {
-          el.classList.add("delete-mode");
-        } else {
-          el.classList.remove("delete-mode");
-        }
-      });
-      
-      sendResponse({ success: true });
-    }
-    else if (msg.action === "reApply") {
-      // Solo re-aplicar si la extensión está activa
-      chrome.storage.local.get("extensionActive", data => {
-        if (chrome.runtime.lastError) {
-          console.error("Error al verificar extensionActive:", chrome.runtime.lastError);
-          sendResponse({ success: false, error: chrome.runtime.lastError.message });
-          return;
-        }
-        
-        const isActive = data.extensionActive ?? false;
-        if (isActive) {
-          reApplyModifications();
-        }
-        sendResponse({ success: true });
-      });
-      return true; // Importante para respuestas asíncronas
-    }
-    else {
-      // Acción desconocida, responder para evitar errores
-      sendResponse({ success: false, error: "Acción desconocida: " + msg.action });
-    }
+      } catch (error) {
+        console.error("Error procesando mensaje:", error);
+        return { success: false, error: error.message };
+      }
+    };
+
+    // Manejar la respuesta asíncrona
+    handleAsyncMessage().then(response => {
+      try {
+        sendResponse(response);
+      } catch (error) {
+        console.warn('Canal de mensajes cerrado:', error);
+      }
+    });
+    
+    return true; // Indicamos que la respuesta será asíncrona
   } catch (error) {
-    console.error("Error procesando mensaje:", error, msg);
+    console.error("Error procesando mensaje:", error);
     sendResponse({ success: false, error: error.message });
+    return false;
   }
-  
-  return true; // Mantener el canal de mensajes abierto para todas las acciones
 });
 
 /**
