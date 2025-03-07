@@ -9,6 +9,9 @@ let selectionMode = false;
 // Indica si estamos en modo borrar
 let deleteMode = false;
 
+// Dominio actual de la página
+const currentDomain = window.location.hostname;
+
 /**
  * Inyecta estilos (.blur-extension, .delete-extension y .hover-highlight)
  * si aún no han sido inyectados.
@@ -70,17 +73,34 @@ function injectGlobalStyles() {
 
 /**
  * Aplica las clases .blur-extension y .delete-extension a los selectores guardados
- * SOLO si la extensión está activa.
+ * SOLO si la extensión está activa y solo al dominio actual.
  */
 function applyStoredModifications() {
   injectGlobalStyles();
 
-  // Primero verificamos si la extensión está activa
-  chrome.storage.local.get("extensionActive", extensionData => {
-    const isActive = extensionData.extensionActive ?? false;
-    
-    // Si la extensión está desactivada, eliminar todos los efectos y salir
-    if (!isActive) {
+  try {
+    // Primero verificamos si la extensión está activa
+    chrome.storage.local.get("extensionActive", extensionData => {
+      if (chrome.runtime.lastError) {
+        console.error("Error al verificar extensionActive:", chrome.runtime.lastError);
+        return;
+      }
+      
+      const isActive = extensionData.extensionActive ?? false;
+      
+      // Si la extensión está desactivada, eliminar todos los efectos y salir
+      if (!isActive) {
+        document.querySelectorAll(".blur-extension").forEach(el => {
+          el.classList.remove("blur-extension");
+        });
+        
+        document.querySelectorAll(".delete-extension").forEach(el => {
+          el.classList.remove("delete-extension");
+        });
+        return;
+      }
+      
+      // Luego quitamos todas las clases de blur y delete para empezar desde cero
       document.querySelectorAll(".blur-extension").forEach(el => {
         el.classList.remove("blur-extension");
       });
@@ -88,63 +108,58 @@ function applyStoredModifications() {
       document.querySelectorAll(".delete-extension").forEach(el => {
         el.classList.remove("delete-extension");
       });
-      return;
-    }
-    
-    const domain = window.location.hostname;
-    
-    // Luego quitamos todas las clases de blur y delete para empezar desde cero
-    document.querySelectorAll(".blur-extension").forEach(el => {
-      el.classList.remove("blur-extension");
-    });
-    
-    document.querySelectorAll(".delete-extension").forEach(el => {
-      el.classList.remove("delete-extension");
-    });
-    
-    // Y solo si la extensión está activa, aplicamos las modificaciones
-    chrome.storage.local.get(["blurSelectors", "deleteSelectors"], data => {
-      // Aplicar blur
-      const blurStore = data.blurSelectors || {};
-      if (blurStore[domain] && Array.isArray(blurStore[domain])) {
-        blurStore[domain].forEach(item => {
-          const selector = (typeof item === "string") ? item : item.selector;
-          try {
-            document.querySelectorAll(selector).forEach(el => {
-              if (
-                !el.classList.contains("ratitas-rojas") &&
-                !el.classList.contains("icono-visible")
-              ) {
-                el.classList.add("blur-extension");
-              }
-            });
-          } catch (err) {
-            console.warn("No se pudo aplicar blur al selector:", selector, err);
-          }
-        });
-      }
       
-      // Aplicar delete
-      const deleteStore = data.deleteSelectors || {};
-      if (deleteStore[domain] && Array.isArray(deleteStore[domain])) {
-        deleteStore[domain].forEach(item => {
-          const selector = (typeof item === "string") ? item : item.selector;
-          try {
-            document.querySelectorAll(selector).forEach(el => {
-              if (
-                !el.classList.contains("ratitas-rojas") &&
-                !el.classList.contains("icono-visible")
-              ) {
-                el.classList.add("delete-extension");
-              }
-            });
-          } catch (err) {
-            console.warn("No se pudo aplicar borrado al selector:", selector, err);
-          }
-        });
-      }
+      // Y solo si la extensión está activa, aplicamos las modificaciones SÓLO para el dominio actual
+      chrome.storage.local.get(["blurSelectors", "deleteSelectors"], data => {
+        if (chrome.runtime.lastError) {
+          console.error("Error al obtener selectores:", chrome.runtime.lastError);
+          return;
+        }
+        
+        // Aplicar blur SOLO para el dominio actual
+        const blurStore = data.blurSelectors || {};
+        if (blurStore[currentDomain] && Array.isArray(blurStore[currentDomain])) {
+          blurStore[currentDomain].forEach(item => {
+            const selector = (typeof item === "string") ? item : item.selector;
+            try {
+              document.querySelectorAll(selector).forEach(el => {
+                if (
+                  !el.classList.contains("ratitas-rojas") &&
+                  !el.classList.contains("icono-visible")
+                ) {
+                  el.classList.add("blur-extension");
+                }
+              });
+            } catch (err) {
+              console.warn("No se pudo aplicar blur al selector:", selector, err);
+            }
+          });
+        }
+        
+        // Aplicar delete SOLO para el dominio actual
+        const deleteStore = data.deleteSelectors || {};
+        if (deleteStore[currentDomain] && Array.isArray(deleteStore[currentDomain])) {
+          deleteStore[currentDomain].forEach(item => {
+            const selector = (typeof item === "string") ? item : item.selector;
+            try {
+              document.querySelectorAll(selector).forEach(el => {
+                if (
+                  !el.classList.contains("ratitas-rojas") &&
+                  !el.classList.contains("icono-visible")
+                ) {
+                  el.classList.add("delete-extension");
+                }
+              });
+            } catch (err) {
+              console.warn("No se pudo aplicar borrado al selector:", selector, err);
+            }
+          });
+        }
+      });
     });
-  });
+  } catch (error) {
+    console.error("Error al aplicar modificaciones:", error);
+  }
 }
 
 /**
@@ -439,61 +454,90 @@ function removeSelectorFromStorage(selector, type = "blur") {
  *  - reApply: volver a aplicar las modificaciones sin refrescar
  */
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg.action === "toggleExtension") {
-    if (msg.enable) {
-      // Solo aplicar modificaciones si la extensión está activa
-      applyStoredModifications();
-      startObserver();
-    } else {
-      turnOffExtension();
-      // Desactivar también el modo edición cuando se desactiva la extensión
-      disableSelectionMode();
-    }
-    sendResponse({ success: true });
+  // Verificar que tenemos un mensaje válido
+  if (!msg || typeof msg !== 'object') {
+    sendResponse({ success: false, error: "Mensaje inválido" });
+    return true;
   }
-  else if (msg.action === "toggleEditMode") {
-    // Solo activar modo edición si la extensión está activa
-    chrome.storage.local.get("extensionActive", data => {
-      const isActive = data.extensionActive ?? false;
-      
-      if (isActive && msg.enable) {
-        // Actualizar modo borrado si es necesario
-        if (msg.deleteMode !== undefined) {
-          deleteMode = msg.deleteMode;
-        }
-        enableSelectionMode();
+
+  try {
+    if (msg.action === "toggleExtension") {
+      if (msg.enable) {
+        // Solo aplicar modificaciones si la extensión está activa
+        applyStoredModifications();
+        startObserver();
       } else {
+        turnOffExtension();
+        // Desactivar también el modo edición cuando se desactiva la extensión
         disableSelectionMode();
       }
       sendResponse({ success: true });
-    });
-    return true; // Importante para respuestas asíncronas
-  }
-  else if (msg.action === "changeMode" || msg.action === "changeDeleteMode") {
-    deleteMode = msg.deleteMode;
-    
-    // Actualizar cualquier elemento que pueda estar resaltado
-    document.querySelectorAll(".hover-highlight").forEach(el => {
-      if (deleteMode) {
-        el.classList.add("delete-mode");
-      } else {
-        el.classList.remove("delete-mode");
-      }
-    });
-    
-    sendResponse({ success: true });
-  }
-  else if (msg.action === "reApply") {
-    // Solo re-aplicar si la extensión está activa
-    chrome.storage.local.get("extensionActive", data => {
-      const isActive = data.extensionActive ?? false;
-      if (isActive) {
-        reApplyModifications();
-      }
+    }
+    else if (msg.action === "toggleEditMode") {
+      // Solo activar modo edición si la extensión está activa
+      chrome.storage.local.get("extensionActive", data => {
+        if (chrome.runtime.lastError) {
+          console.error("Error al verificar extensionActive:", chrome.runtime.lastError);
+          sendResponse({ success: false, error: chrome.runtime.lastError.message });
+          return;
+        }
+        
+        const isActive = data.extensionActive ?? false;
+        
+        if (isActive && msg.enable) {
+          // Actualizar modo borrado si es necesario
+          if (msg.deleteMode !== undefined) {
+            deleteMode = msg.deleteMode;
+          }
+          enableSelectionMode();
+        } else {
+          disableSelectionMode();
+        }
+        sendResponse({ success: true });
+      });
+      return true; // Importante para respuestas asíncronas
+    }
+    else if (msg.action === "changeMode" || msg.action === "changeDeleteMode") {
+      deleteMode = msg.deleteMode;
+      
+      // Actualizar cualquier elemento que pueda estar resaltado
+      document.querySelectorAll(".hover-highlight").forEach(el => {
+        if (deleteMode) {
+          el.classList.add("delete-mode");
+        } else {
+          el.classList.remove("delete-mode");
+        }
+      });
+      
       sendResponse({ success: true });
-    });
-    return true; // Importante para respuestas asíncronas
+    }
+    else if (msg.action === "reApply") {
+      // Solo re-aplicar si la extensión está activa
+      chrome.storage.local.get("extensionActive", data => {
+        if (chrome.runtime.lastError) {
+          console.error("Error al verificar extensionActive:", chrome.runtime.lastError);
+          sendResponse({ success: false, error: chrome.runtime.lastError.message });
+          return;
+        }
+        
+        const isActive = data.extensionActive ?? false;
+        if (isActive) {
+          reApplyModifications();
+        }
+        sendResponse({ success: true });
+      });
+      return true; // Importante para respuestas asíncronas
+    }
+    else {
+      // Acción desconocida, responder para evitar errores
+      sendResponse({ success: false, error: "Acción desconocida: " + msg.action });
+    }
+  } catch (error) {
+    console.error("Error procesando mensaje:", error, msg);
+    sendResponse({ success: false, error: error.message });
   }
+  
+  return true; // Mantener el canal de mensajes abierto para todas las acciones
 });
 
 /**

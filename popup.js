@@ -46,7 +46,26 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => div.remove(), duration);
   }
 
-  // Refresca el botón e imagen superior
+  // Implementar una función segura para verificar si existen personajes
+  function hasCharacterElements() {
+    return !!(
+      document.getElementById("blurCharacterImage") || 
+      document.getElementById("deleteCharacterImage") ||
+      document.querySelector(".blur-character") ||
+      document.querySelector(".delete-character")
+    );
+  }
+
+  // Función segura para actualizar personajes
+  function safeUpdateCharacters() {
+    if (hasCharacterElements()) {
+      updateCharacters();
+    } else {
+      console.log("No hay elementos de personajes para actualizar");
+    }
+  }
+
+  // Reemplazar refreshExtensionToggleUI para usar la función segura
   function refreshExtensionToggleUI() {
     chrome.storage.local.get("extensionActive", data => {
       const active = data.extensionActive ?? false;
@@ -56,49 +75,12 @@ document.addEventListener("DOMContentLoaded", () => {
       `;
       toggleExtensionBtn.className = `btn ${active ? "btn-secondary" : "btn-primary"}`;
       
-      // Actualizar personajes
-      updateCharacters();
+      // Usar la función segura
+      safeUpdateCharacters();
     });
   }
 
-  // Crear iconos para los modos blur y borrar
-  function createModeIcons() {
-    const blurOption = document.querySelector('.mode-option[data-mode="blur"]');
-    const deleteOption = document.querySelector('.mode-option[data-mode="delete"]');
-    
-    // Eliminar iconos existentes si los hay para evitar duplicados
-    const existingBlurIcon = document.getElementById("modeBlurIcon");
-    const existingDeleteIcon = document.getElementById("modeDeleteIcon");
-    
-    if (existingBlurIcon) existingBlurIcon.remove();
-    if (existingDeleteIcon) existingDeleteIcon.remove();
-    
-    // Crear nuevo icono para modo blur
-    if (blurOption) {
-      const modeBlurIcon = document.createElement("img");
-      modeBlurIcon.id = "modeBlurIcon";
-      modeBlurIcon.className = "mode-icon";
-      modeBlurIcon.src = "blur.png";
-      modeBlurIcon.alt = "Modo Blur";
-      modeBlurIcon.style.backgroundColor = "transparent";
-      modeBlurIcon.style.objectFit = "contain";
-      blurOption.appendChild(modeBlurIcon);
-    }
-    
-    // Crear nuevo icono para modo borrar
-    if (deleteOption) {
-      const modeDeleteIcon = document.createElement("img");
-      modeDeleteIcon.id = "modeDeleteIcon";
-      modeDeleteIcon.className = "mode-icon";
-      modeDeleteIcon.src = "borrar.png";
-      modeDeleteIcon.alt = "Modo Borrar";
-      modeDeleteIcon.style.backgroundColor = "transparent";
-      modeDeleteIcon.style.objectFit = "contain";
-      deleteOption.appendChild(modeDeleteIcon);
-    }
-  }
-
-  // Función actualizada para gestionar los iconos de estado
+  // Reemplazar updateStateIcons para usar la función segura
   function updateStateIcons() {
     chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
       if (tabs && tabs.length > 0) {
@@ -122,12 +104,12 @@ document.addEventListener("DOMContentLoaded", () => {
           deleteStateImage.style.display = "none";
           
           // Hacemos las imágenes de estado más grandes
-          blurStateImage.style.width = "100px";  // Aumentado de 38px a 100px
-          blurStateImage.style.height = "100px"; // Aumentado de 38px a 100px
-          deleteStateImage.style.width = "100px"; // Aumentado de 38px a 100px
-          deleteStateImage.style.height = "100px"; // Aumentado de 38px a 100px
-          disabledStateImage.style.width = "100px"; // Aumentado de 38px a 100px
-          disabledStateImage.style.height = "100px"; // Aumentado de 38px a 100px
+          blurStateImage.style.width = "100px";
+          blurStateImage.style.height = "100px";
+          deleteStateImage.style.width = "100px";
+          deleteStateImage.style.height = "100px";
+          disabledStateImage.style.width = "100px";
+          disabledStateImage.style.height = "100px";
           
           // Asegurar que los iconos tengan un z-index alto
           blurStateImage.style.zIndex = "1000";
@@ -142,12 +124,12 @@ document.addEventListener("DOMContentLoaded", () => {
           
           // Si está activada, verificamos qué elementos hay en la página
           const hasBlurElements = data.blurSelectors && 
-                                 data.blurSelectors[domain] && 
-                                 data.blurSelectors[domain].length > 0;
+                               data.blurSelectors[domain] && 
+                               data.blurSelectors[domain].length > 0;
           
           const hasDeleteElements = data.deleteSelectors && 
-                                   data.deleteSelectors[domain] && 
-                                   data.deleteSelectors[domain].length > 0;
+                                 data.deleteSelectors[domain] && 
+                                 data.deleteSelectors[domain].length > 0;
           
           // Mostrar los iconos correspondientes
           if (hasBlurElements) {
@@ -166,14 +148,102 @@ document.addEventListener("DOMContentLoaded", () => {
             blurStateImage.style.zIndex = "10000"; // Aseguramos que esté por encima
           }
           
-          // Actualizar también los personajes
-          updateCharacters();
+          // Usar la función segura
+          safeUpdateCharacters();
         });
       }
     });
   }
 
-  // Pulsar botón => invertimos extensionActive
+  // Manda mensaje al content script para re-aplicar sin refrescar
+  function reApplyInTab() {
+    chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+      if (!tabs || tabs.length === 0) {
+        console.warn("No se encontraron pestañas activas para re-aplicar");
+        return;
+      }
+      
+      // Verificar si la pestaña es válida
+      const activeTab = tabs[0];
+      if (!activeTab || !activeTab.id || activeTab.id <= 0) {
+        console.warn("La pestaña activa no es válida:", activeTab);
+        return;
+      }
+      
+      // Verificar si la pestaña permite content scripts
+      if (!activeTab.url || activeTab.url.startsWith("chrome:") || 
+          activeTab.url.startsWith("chrome-extension:") || 
+          activeTab.url.startsWith("about:")) {
+        console.warn("La pestaña activa no permite content scripts:", activeTab.url);
+        return;
+      }
+      
+      try {
+        // Usar función noop para el callback para evitar errores si no hay respuesta
+        const noop = () => {
+          if (chrome.runtime.lastError) {
+            // Solo registrar el error, no mostrar al usuario
+            console.warn("Error al comunicarse con content script (esperado):", chrome.runtime.lastError);
+          }
+        };
+        
+        chrome.tabs.sendMessage(
+          activeTab.id,
+          { action: "reApply", timestamp: Date.now() },
+          noop
+        );
+      } catch (error) {
+        console.error("Error al enviar mensaje para re-aplicar:", error);
+      }
+    });
+  }
+
+  // Función actualizada para comunicarse de forma más robusta con el content script
+  function sendMessageToContentScript(message) {
+    return new Promise((resolve, reject) => {
+      chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+        if (!tabs || tabs.length === 0) {
+          reject(new Error("No se encontraron pestañas activas"));
+          return;
+        }
+        
+        const activeTab = tabs[0];
+        if (!activeTab || !activeTab.id || activeTab.id <= 0) {
+          reject(new Error("La pestaña activa no es válida"));
+          return;
+        }
+        
+        // Verificar si la pestaña permite content scripts
+        if (!activeTab.url || activeTab.url.startsWith("chrome:") || 
+            activeTab.url.startsWith("chrome-extension:") || 
+            activeTab.url.startsWith("about:")) {
+          reject(new Error("La pestaña activa no permite content scripts"));
+          return;
+        }
+        
+        try {
+          chrome.tabs.sendMessage(
+            activeTab.id,
+            { ...message, timestamp: Date.now() },
+            response => {
+              if (chrome.runtime.lastError) {
+                console.warn("Error en comunicación con content script:", chrome.runtime.lastError);
+                // Resolver con null en lugar de rechazar para manejar errores esperados
+                resolve(null);
+                return;
+              }
+              resolve(response);
+            }
+          );
+        } catch (error) {
+          console.error("Error al enviar mensaje:", error);
+          reject(error);
+        }
+      });
+    });
+  }
+
+  // Actualizar toggleExtensionBtn para usar la nueva función
   toggleExtensionBtn.addEventListener("click", () => {
     chrome.storage.local.get("extensionActive", data => {
       const wasActive = data.extensionActive ?? true;
@@ -181,21 +251,166 @@ document.addEventListener("DOMContentLoaded", () => {
 
       chrome.storage.local.set({ extensionActive: newState }, () => {
         refreshExtensionToggleUI();
-        updateStateIcons(); // Actualizar los iconos inmediatamente después de activar/desactivar
+        updateStateIcons();
         
-        // Avisar al content script
-        chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-          if (tabs && tabs.length > 0) {
-            chrome.tabs.sendMessage(tabs[0].id, {
-              action: "toggleExtension",
-              enable: newState
-            });
-          }
+        // Usar la nueva función
+        sendMessageToContentScript({
+          action: "toggleExtension",
+          enable: newState
+        }).catch(error => {
+          console.error("Error al activar/desactivar extensión:", error);
         });
+        
         showNotification(newState ? "🎉 Extensión activada" : "👋 Extensión desactivada");
       });
     });
   });
+
+  // Actualizar toggleEditMode para usar la nueva función
+  function toggleEditMode() {
+    const isOn = toggleEdit.checked;
+    
+    if (isOn) {
+      // Si activamos el toggle, asegurarse que la extensión también se active
+      chrome.storage.local.set({ 
+        extensionActive: true,  // Activar extensión automáticamente
+        editMode: true          // Activar modo edición
+      }, async () => {
+        // Actualizar UI completa
+        refreshExtensionToggleUI();
+        refreshStateIcons();
+        modeSelector.style.display = "flex";
+        
+        // Añadimos los iconos de modo
+        createModeIcons();
+        
+        // Actualizamos la visibilidad de los iconos según el modo activo
+        chrome.storage.local.get("deleteMode", async data => {
+          const isDeleteMode = data.deleteMode ?? false;
+          const modeBlurIcon = document.getElementById("modeBlurIcon");
+          const modeDeleteIcon = document.getElementById("modeDeleteIcon");
+          
+          if (modeBlurIcon) modeBlurIcon.style.display = !isDeleteMode ? "block" : "none";
+          if (modeDeleteIcon) modeDeleteIcon.style.display = isDeleteMode ? "block" : "none";
+          
+          try {
+            // Primero activar la extensión
+            await sendMessageToContentScript({
+              action: "toggleExtension",
+              enable: true
+            });
+            
+            // Después activar el modo edición
+            await sendMessageToContentScript({
+              action: "toggleEditMode",
+              enable: true,
+              deleteMode: isDeleteMode
+            });
+            
+            // Obtener el dominio actual y reconstruir la UI
+            chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+              if (tabs && tabs.length > 0) {
+                const domain = new URL(tabs[0].url).hostname;
+                buildDomainUI(domain);
+                
+                // Forzar reAplicación
+                setTimeout(reApplyInTab, 300);
+              }
+            });
+          } catch (error) {
+            console.error("Error al activar modo edición:", error);
+          }
+        });
+        
+        showNotification("🎯 Modo selección activado");
+      });
+    } else {
+      // Si desactivamos el toggle, solo desactivamos el modo edición
+      chrome.storage.local.set({ editMode: false }, async () => {
+        modeSelector.style.display = "none";
+        refreshStateIcons();
+        
+        try {
+          await sendMessageToContentScript({
+            action: "toggleEditMode",
+            enable: false
+          });
+          
+          // Obtener el dominio actual y reconstruir la UI
+          chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+            if (tabs && tabs.length > 0) {
+              const domain = new URL(tabs[0].url).hostname;
+              buildDomainUI(domain);
+            }
+          });
+        } catch (error) {
+          console.error("Error al desactivar modo edición:", error);
+        }
+        
+        showNotification("📌 Modo selección desactivado");
+      });
+    }
+  }
+  
+  // Actualizar switchModes para usar la nueva función
+  const switchModes = (isDeleteMode) => {
+    // Guardar el modo
+    chrome.storage.local.set({
+      deleteMode: isDeleteMode
+    }, () => {
+      // Actualizamos el mensaje en el selector
+      const modeLabel = document.getElementById("currentModeLabel");
+      if (modeLabel) {
+        modeLabel.textContent = isDeleteMode ? "Modo Borrar" : "Modo Blur";
+      }
+      
+      // Actualizar clases en los botones
+      modeOptions.forEach(opt => {
+        if (opt.dataset.mode === (isDeleteMode ? 'delete' : 'blur')) {
+          opt.classList.add('active');
+        } else {
+          opt.classList.remove('active');
+        }
+      });
+      
+      // Eliminar iconos actuales
+      const existingBlurIcon = document.getElementById("modeBlurIcon");
+      const existingDeleteIcon = document.getElementById("modeDeleteIcon");
+      
+      if (existingBlurIcon) existingBlurIcon.remove();
+      if (existingDeleteIcon) existingDeleteIcon.remove();
+      
+      // Actualizar iconos de modo
+      setTimeout(() => {
+        createModeIcons();
+        
+        // Actualizar visibilidad de los iconos
+        const modeBlurIcon = document.getElementById("modeBlurIcon");
+        const modeDeleteIcon = document.getElementById("modeDeleteIcon");
+        
+        if (modeBlurIcon) {
+          modeBlurIcon.style.display = !isDeleteMode ? "block" : "none";
+          modeBlurIcon.style.backgroundColor = "transparent";
+        }
+        
+        if (modeDeleteIcon) {
+          modeDeleteIcon.style.display = isDeleteMode ? "block" : "none";
+          modeDeleteIcon.style.backgroundColor = "transparent";
+        }
+      }, 50);
+      
+      // Aplicar el cambio usando la nueva función
+      sendMessageToContentScript({
+        action: "changeDeleteMode",
+        deleteMode: isDeleteMode
+      }).then(() => {
+        // Forzar una replicación para asegurar que los cambios se aplican
+        reApplyInTab();
+      }).catch(error => {
+        console.error("Error al cambiar modo:", error);
+      });
+    });
+  };
 
   // Modo selección
   function refreshEditCheckbox() {
@@ -279,134 +494,13 @@ document.addEventListener("DOMContentLoaded", () => {
             blurStateImage.style.zIndex = "9999";
           }
           
-          // Actualizar también los personajes
-          updateCharacters();
+          // Usar la función segura
+          safeUpdateCharacters();
         });
       }
     });
   }
 
-  function toggleEditMode() {
-    const isOn = toggleEdit.checked;
-    
-    if (isOn) {
-      // Si activamos el toggle, asegurarse que la extensión también se active
-      chrome.storage.local.set({ 
-        extensionActive: true,  // Activar extensión automáticamente
-        editMode: true          // Activar modo edición
-      }, () => {
-        // Actualizar UI completa
-        refreshExtensionToggleUI();
-        refreshStateIcons();
-        modeSelector.style.display = "flex";
-        
-        // Añadimos los iconos de modo
-        createModeIcons();
-        
-        // Actualizamos la visibilidad de los iconos según el modo activo
-        chrome.storage.local.get("deleteMode", data => {
-          const isDeleteMode = data.deleteMode ?? false;
-          const modeBlurIcon = document.getElementById("modeBlurIcon");
-          const modeDeleteIcon = document.getElementById("modeDeleteIcon");
-          
-          if (modeBlurIcon) modeBlurIcon.style.display = !isDeleteMode ? "block" : "none";
-          if (modeDeleteIcon) modeDeleteIcon.style.display = isDeleteMode ? "block" : "none";
-        });
-        
-        // Notificar al content script
-        chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-          if (tabs && tabs.length > 0) {
-            // Primero activar la extensión
-            chrome.tabs.sendMessage(tabs[0].id, {
-              action: "toggleExtension",
-              enable: true
-            }, (response) => {
-              // Comprobar si hay errores de conexión (podría pasar si el content script no está cargado)
-              if (chrome.runtime.lastError) {
-                console.error("Error al activar extensión:", chrome.runtime.lastError);
-                // Inyectar el content script si hay error
-                chrome.scripting.executeScript({
-                  target: { tabId: tabs[0].id },
-                  files: ['content.js']
-                }).then(() => {
-                  // Reintentamos activar la extensión
-                  setTimeout(() => {
-                    chrome.tabs.sendMessage(tabs[0].id, {
-                      action: "toggleExtension",
-                      enable: true
-                    });
-                  }, 200);
-                });
-                return;
-              }
-              
-              // Después activar el modo edición
-              chrome.storage.local.get("deleteMode", deleteData => {
-                const isDeleting = deleteData.deleteMode ?? false;
-                
-                // Forzar tiempo de espera para asegurar que los cambios previos se han aplicado
-                setTimeout(() => {
-                  chrome.tabs.sendMessage(tabs[0].id, {
-                    action: "toggleEditMode",
-                    enable: true,
-                    deleteMode: isDeleting
-                  }, (response) => {
-                    // Verificar si la respuesta indica éxito
-                    if (response && response.success) {
-                      console.log("Modo edición activado:", response);
-                    } else {
-                      console.warn("No se recibió confirmación de activación");
-                    }
-                    
-                    // Obtener el dominio actual y reconstruir la UI para reflejar cambios
-                    chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-                      if (tabs && tabs.length > 0) {
-                        const domain = new URL(tabs[0].url).hostname;
-                        buildDomainUI(domain);
-                        
-                        // Forzar reAplicación después de un breve tiempo para asegurar que todo está aplicado
-                        setTimeout(() => reApplyInTab(), 300);
-                      }
-                    });
-                  });
-                }, 200);
-              });
-            });
-          }
-        });
-        
-        showNotification("🎯 Modo selección activado");
-      });
-    } else {
-      // Si desactivamos el toggle, solo desactivamos el modo edición
-      chrome.storage.local.set({ editMode: false }, () => {
-        modeSelector.style.display = "none";
-        refreshStateIcons();
-        
-        // Notificar al content script
-        chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-          if (tabs && tabs.length > 0) {
-            chrome.tabs.sendMessage(tabs[0].id, {
-              action: "toggleEditMode",
-              enable: false
-            }, () => {
-              if (chrome.runtime.lastError) {
-                console.error("Error al desactivar modo edición:", chrome.runtime.lastError);
-                return;
-              }
-              
-              // Obtener el dominio actual y reconstruir la UI
-              const domain = new URL(tabs[0].url).hostname;
-              buildDomainUI(domain);
-            });
-          }
-        });
-        
-        showNotification("📌 Modo selección desactivado");
-      });
-    }
-  }
-  
   // Manejar el cambio de modo (blur o borrar)
   modeOptions.forEach(option => {
     option.addEventListener('click', (e) => {
@@ -534,8 +628,8 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       });
 
-      // Actualizar personajes
-      updateCharacters();
+      // Usar la función segura
+      safeUpdateCharacters();
     });
     
     // Ahora también construimos las sugerencias
@@ -544,6 +638,17 @@ document.addEventListener("DOMContentLoaded", () => {
   
   // Construir UI para sugerencias con animaciones
   function buildSuggestionsUI(domain) {
+    // Verificar si PREDEFINED_BLURS está definido
+    if (typeof PREDEFINED_BLURS === 'undefined' || !PREDEFINED_BLURS) {
+      console.error("Variable PREDEFINED_BLURS no definida");
+      suggestedWrapper.innerHTML = `
+        <div class="empty-state">
+          No se pudieron cargar las sugerencias. Por favor, inténtalo de nuevo.
+        </div>
+      `;
+      return;
+    }
+    
     // Si no tenemos sugerencias para este dominio, mostramos un mensaje
     if (!PREDEFINED_BLURS[domain] || PREDEFINED_BLURS[domain].length === 0) {
       suggestedWrapper.innerHTML = `
@@ -615,11 +720,66 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
 
-    // Actualizar personajes
-    updateCharacters();
+    // Usar la función segura
+    safeUpdateCharacters();
   }
   
-  // Agregar una sugerencia a los blurs activos
+  // Crear iconos para los modos blur y borrar
+  function createModeIcons() {
+    try {
+      const blurOption = document.querySelector('.mode-option[data-mode="blur"]');
+      const deleteOption = document.querySelector('.mode-option[data-mode="delete"]');
+      
+      // Eliminar iconos existentes si los hay para evitar duplicados
+      const existingBlurIcon = document.getElementById("modeBlurIcon");
+      const existingDeleteIcon = document.getElementById("modeDeleteIcon");
+      
+      if (existingBlurIcon) existingBlurIcon.remove();
+      if (existingDeleteIcon) existingDeleteIcon.remove();
+      
+      // Crear nuevo icono para modo blur
+      if (blurOption) {
+        const modeBlurIcon = document.createElement("img");
+        modeBlurIcon.id = "modeBlurIcon";
+        modeBlurIcon.className = "mode-icon";
+        modeBlurIcon.src = "blur.png";
+        modeBlurIcon.alt = "Modo Blur";
+        modeBlurIcon.style.backgroundColor = "transparent";
+        modeBlurIcon.style.objectFit = "contain";
+        blurOption.appendChild(modeBlurIcon);
+      }
+      
+      // Crear nuevo icono para modo borrar
+      if (deleteOption) {
+        const modeDeleteIcon = document.createElement("img");
+        modeDeleteIcon.id = "modeDeleteIcon";
+        modeDeleteIcon.className = "mode-icon";
+        modeDeleteIcon.src = "borrar.png";
+        modeDeleteIcon.alt = "Modo Borrar";
+        modeDeleteIcon.style.backgroundColor = "transparent";
+        modeDeleteIcon.style.objectFit = "contain";
+        deleteOption.appendChild(modeDeleteIcon);
+      }
+      
+      // Configurar visibilidad según el modo actual
+      chrome.storage.local.get("deleteMode", data => {
+        const isDeleteMode = data.deleteMode ?? false;
+        const modeBlurIcon = document.getElementById("modeBlurIcon");
+        const modeDeleteIcon = document.getElementById("modeDeleteIcon");
+        
+        if (modeBlurIcon) {
+          modeBlurIcon.style.display = !isDeleteMode ? "block" : "none";
+        }
+        
+        if (modeDeleteIcon) {
+          modeDeleteIcon.style.display = isDeleteMode ? "block" : "none";
+        }
+      });
+    } catch (error) {
+      console.error("Error al crear iconos de modo:", error);
+    }
+  }
+
   function addSuggestion(domain, selector, name) {
     // Primero verificamos si el elemento existe en predefinidos
     let suggestedType = 'blur'; // Tipo por defecto
@@ -674,8 +834,8 @@ document.addEventListener("DOMContentLoaded", () => {
         reApplyInTab();
       });
 
-      // Actualizar personajes
-      updateCharacters();
+      // Usar la función segura
+      safeUpdateCharacters();
     });
   }
 
@@ -718,10 +878,17 @@ document.addEventListener("DOMContentLoaded", () => {
     nameSpan.addEventListener("blur", onBlur);
   }
 
+  // Reemplazar renameBlurInStorage para usar la función segura
   function renameBlurInStorage(domain, selector, newName, type = "blur") {
     const storageKey = type === "delete" ? "deleteSelectors" : "blurSelectors";
     
     chrome.storage.local.get(storageKey, data => {
+      if (chrome.runtime.lastError) {
+        console.error("Error al obtener selectores:", chrome.runtime.lastError);
+        showNotification("❌ Error al renombrar: " + chrome.runtime.lastError.message);
+        return;
+      }
+      
       const store = data[storageKey] || {};
       if (!store[domain]) return;
 
@@ -738,7 +905,14 @@ document.addEventListener("DOMContentLoaded", () => {
           return it;
         }
       });
+      
       chrome.storage.local.set({ [storageKey]: store }, () => {
+        if (chrome.runtime.lastError) {
+          console.error("Error al guardar selector renombrado:", chrome.runtime.lastError);
+          showNotification("❌ Error al guardar: " + chrome.runtime.lastError.message);
+          return;
+        }
+        
         showNotification(`✏️ ${type === "delete" ? "Elemento borrado" : "Blur"} renombrado`);
         buildDomainUI(domain);
         // Re-aplicar en la pestaña sin refrescar
@@ -746,15 +920,21 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
 
-    // Actualizar personajes
-    updateCharacters();
+    // Usar la función segura
+    safeUpdateCharacters();
   }
 
-  // Eliminar blur o elemento borrado
+  // Reemplazar removeBlur para usar la función segura
   function removeBlur(domain, selector, type = "blur") {
     const storageKey = type === "delete" ? "deleteSelectors" : "blurSelectors";
     
     chrome.storage.local.get(storageKey, data => {
+      if (chrome.runtime.lastError) {
+        console.error("Error al obtener selectores para eliminar:", chrome.runtime.lastError);
+        showNotification("❌ Error al eliminar: " + chrome.runtime.lastError.message);
+        return;
+      }
+      
       const store = data[storageKey] || {};
       if (!store[domain]) return;
 
@@ -765,7 +945,14 @@ document.addEventListener("DOMContentLoaded", () => {
           return it.selector !== selector;
         }
       });
+      
       chrome.storage.local.set({ [storageKey]: store }, () => {
+        if (chrome.runtime.lastError) {
+          console.error("Error al guardar después de eliminar:", chrome.runtime.lastError);
+          showNotification("❌ Error al guardar: " + chrome.runtime.lastError.message);
+          return;
+        }
+        
         showNotification(`🗑️ ${type === "delete" ? "Elemento borrado" : "Blur"} eliminado`);
         buildDomainUI(domain);
         // Re-aplicar en la pestaña sin refrescar
@@ -773,19 +960,8 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
 
-    // Actualizar personajes
-    updateCharacters();
-  }
-
-  // Manda mensaje al content script para re-aplicar sin refrescar
-  function reApplyInTab() {
-    chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-      if (tabs && tabs.length > 0) {
-        chrome.tabs.sendMessage(tabs[0].id, {
-          action: "reApply"
-        });
-      }
-    });
+    // Usar la función segura
+    safeUpdateCharacters();
   }
 
   // Nombre por defecto para un selector (p.ej. "img" => "Imagen")
@@ -913,11 +1089,15 @@ document.addEventListener("DOMContentLoaded", () => {
       // 4. Actualizar interfaz del dominio actual (incluye sugerencias)
       chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
         if (tabs && tabs.length > 0) {
-          const domain = new URL(tabs[0].url).hostname;
-          console.log("Dominio actual:", domain);
-          
-          // Construir UI para dominio actual
-          buildDomainUI(domain);
+          try {
+            const domain = new URL(tabs[0].url).hostname;
+            console.log("Dominio actual:", domain);
+            
+            // Construir UI para dominio actual
+            buildDomainUI(domain);
+          } catch (error) {
+            console.error("Error al obtener dominio de la pestaña:", error);
+          }
         }
       });
     });
@@ -988,32 +1168,35 @@ document.addEventListener("DOMContentLoaded", () => {
   // Función para actualizar la visualización de los personajes
   function updateCharacters() {
     console.log("Actualizando personajes...");
+    
+    // Verificar si los elementos existen antes de intentar manipularlos
+    const blurCharacterImg = document.getElementById("blurCharacterImage");
+    const deleteCharacterImg = document.getElementById("deleteCharacterImage");
+    const blurCharacter = document.querySelector(".blur-character");
+    const deleteCharacter = document.querySelector(".delete-character");
+    
+    // Si no existen los elementos, simplemente salimos de la función sin error
+    if (!blurCharacterImg && !deleteCharacterImg && !blurCharacter && !deleteCharacter) {
+      console.log("No se encontraron elementos de personajes en el DOM - omitiendo actualización");
+      return;
+    }
+    
     chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-      if (tabs && tabs.length > 0) {
+      if (!tabs || tabs.length === 0) {
+        console.log("No hay pestañas activas para actualizar personajes");
+        return;
+      }
+      
+      try {
         const domain = new URL(tabs[0].url).hostname;
         
         chrome.storage.local.get(["extensionActive", "blurSelectors", "deleteSelectors"], data => {
+          if (chrome.runtime.lastError) {
+            console.warn("Error al obtener datos para personajes:", chrome.runtime.lastError);
+            return;
+          }
+          
           const isActive = data.extensionActive ?? false;
-          const blurCharacterImg = document.getElementById("blurCharacterImage");
-          const deleteCharacterImg = document.getElementById("deleteCharacterImage");
-          const blurCharacter = document.querySelector(".blur-character");
-          const deleteCharacter = document.querySelector(".delete-character");
-          
-          // Verificar que existan los elementos
-          if (!blurCharacterImg || !deleteCharacterImg || !blurCharacter || !deleteCharacter) {
-            console.error("No se encontraron todos los elementos de personajes en el DOM");
-            return;
-          }
-          
-          if (!isActive) {
-            // Extensión desactivada: ambos personajes con ojos cerrados
-            blurCharacterImg.src = "desactivado.png";
-            deleteCharacterImg.src = "desactivado.png";
-            blurCharacter.classList.remove("active");
-            deleteCharacter.classList.remove("active");
-            console.log("Personajes desactivados");
-            return;
-          }
           
           // Verificar elementos con blur
           const hasBlurElements = data.blurSelectors && 
@@ -1027,24 +1210,34 @@ document.addEventListener("DOMContentLoaded", () => {
           
           console.log(`Dominio: ${domain} - Tiene blur: ${hasBlurElements} - Tiene borrados: ${hasDeleteElements}`);
           
-          // Actualizar personaje de blur
-          if (hasBlurElements) {
-            blurCharacterImg.src = "blur.png"; // Personaje con ojos abiertos
-            blurCharacter.classList.add("active");
-          } else {
-            blurCharacterImg.src = "desactivado.png"; // Personaje con ojos cerrados
-            blurCharacter.classList.remove("active");
+          // Actualizar personaje de blur si existe
+          if (blurCharacterImg) {
+            blurCharacterImg.src = isActive && hasBlurElements ? "blur.png" : "desactivado.png";
           }
           
-          // Actualizar personaje de borrado
-          if (hasDeleteElements) {
-            deleteCharacterImg.src = "borrar.png"; // Personaje con antifaz
-            deleteCharacter.classList.add("active");
-          } else {
-            deleteCharacterImg.src = "desactivado.png"; // Personaje con ojos cerrados
-            deleteCharacter.classList.remove("active");
+          if (blurCharacter) {
+            if (isActive && hasBlurElements) {
+              blurCharacter.classList.add("active");
+            } else {
+              blurCharacter.classList.remove("active");
+            }
+          }
+          
+          // Actualizar personaje de borrado si existe
+          if (deleteCharacterImg) {
+            deleteCharacterImg.src = isActive && hasDeleteElements ? "borrar.png" : "desactivado.png";
+          }
+          
+          if (deleteCharacter) {
+            if (isActive && hasDeleteElements) {
+              deleteCharacter.classList.add("active");
+            } else {
+              deleteCharacter.classList.remove("active");
+            }
           }
         });
+      } catch (error) {
+        console.warn("Error en updateCharacters:", error);
       }
     });
   }
@@ -1086,66 +1279,4 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   `;
   document.head.appendChild(style);
-
-  // Cambio de modo (blur/delete)
-  const switchModes = (isDeleteMode) => {
-    // Guardar el modo
-    chrome.storage.local.set({
-      deleteMode: isDeleteMode
-    }, () => {
-      // Actualizamos el mensaje en el selector
-      const modeLabel = document.getElementById("currentModeLabel");
-      if (modeLabel) {
-        modeLabel.textContent = isDeleteMode ? "Modo Borrar" : "Modo Blur";
-      }
-      
-      // Actualizar clases en los botones
-      modeOptions.forEach(opt => {
-        if (opt.dataset.mode === (isDeleteMode ? 'delete' : 'blur')) {
-          opt.classList.add('active');
-        } else {
-          opt.classList.remove('active');
-        }
-      });
-      
-      // Eliminar iconos actuales
-      const existingBlurIcon = document.getElementById("modeBlurIcon");
-      const existingDeleteIcon = document.getElementById("modeDeleteIcon");
-      
-      if (existingBlurIcon) existingBlurIcon.remove();
-      if (existingDeleteIcon) existingDeleteIcon.remove();
-      
-      // Actualizar iconos de modo - asegurarnos de que están creados correctamente
-      setTimeout(() => {
-        createModeIcons();
-        
-        // Actualizar visibilidad de los iconos
-        const modeBlurIcon = document.getElementById("modeBlurIcon");
-        const modeDeleteIcon = document.getElementById("modeDeleteIcon");
-        
-        if (modeBlurIcon) {
-          modeBlurIcon.style.display = !isDeleteMode ? "block" : "none";
-          modeBlurIcon.style.backgroundColor = "transparent";
-        }
-        
-        if (modeDeleteIcon) {
-          modeDeleteIcon.style.display = isDeleteMode ? "block" : "none";
-          modeDeleteIcon.style.backgroundColor = "transparent";
-        }
-      }, 50);
-      
-      // Aplicar el cambio en la pestaña actual
-      chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-        if (tabs && tabs.length > 0) {
-          chrome.tabs.sendMessage(tabs[0].id, {
-            action: "changeDeleteMode",
-            deleteMode: isDeleteMode
-          }, () => {
-            // Forzar una replicación para asegurar que los cambios se aplican
-            reApplyInTab();
-          });
-        }
-      });
-    });
-  };
 });
