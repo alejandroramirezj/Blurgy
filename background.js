@@ -45,13 +45,26 @@ chrome.storage.onChanged.addListener((changes, area) => {
 let activeTabId = null;
 let tabsCache = new Map();
 
-// Función para verificar si una pestaña existe
-async function tabExists(tabId) {
+// Función para verificar si una pestaña existe y es válida para mensajes
+async function isTabValidForMessaging(tabId) {
   try {
-    await chrome.tabs.get(tabId);
-    return true;
+    const tab = await chrome.tabs.get(tabId);
+    return tab && tab.url && !tab.url.startsWith('chrome:') && !tab.url.startsWith('chrome-extension:');
   } catch (error) {
     return false;
+  }
+}
+
+// Función para enviar mensaje a una pestaña de forma segura
+async function sendMessageToTabSafely(tabId, message) {
+  try {
+    if (!await isTabValidForMessaging(tabId)) {
+      throw new Error(`Pestaña ${tabId} no válida para mensajes`);
+    }
+    return await chrome.tabs.sendMessage(tabId, message);
+  } catch (error) {
+    console.error(`Error al enviar mensaje a pestaña ${tabId}:`, error);
+    throw error;
   }
 }
 
@@ -73,18 +86,16 @@ async function getActiveTab() {
 chrome.runtime.onInstalled.addListener(async () => {
   console.log('Service Worker instalado correctamente');
   try {
-    // Inicializar el estado de la extensión
     await chrome.storage.local.set({
       extensionActive: false,
       editMode: false,
       deleteMode: false,
       blurSelectors: {},
-      deleteSelectors: {}
+      deleteSelectors: {},
+      autoActivate: false
     });
-    
-    // Sincronizar el icono con el estado inicial
     await syncIconWithState(false);
-    console.log('Configuración inicial establecida correctamente');
+    console.log('Configuración inicial establecida correctamente - Extensión desactivada por defecto');
   } catch (error) {
     console.error('Error durante la instalación:', error);
   }
@@ -94,9 +105,11 @@ chrome.runtime.onInstalled.addListener(async () => {
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   try {
     const tab = await chrome.tabs.get(activeInfo.tabId);
-    activeTabId = activeInfo.tabId;
-    tabsCache.set(activeTabId, tab);
-    console.log('Nueva pestaña activa:', tab.url);
+    if (await isTabValidForMessaging(activeInfo.tabId)) {
+      activeTabId = activeInfo.tabId;
+      tabsCache.set(activeTabId, tab);
+      console.log('Nueva pestaña activa:', tab.url);
+    }
   } catch (error) {
     console.error('Error al actualizar pestaña activa:', error);
     activeTabId = null;
@@ -124,12 +137,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return false;
   }
 
-  // Para otros mensajes que no son para el background
-  if (!message.target || message.target !== 'background') {
-    sendResponse({ success: true, source: "background" });
-    return false;
-  }
-
   // Para mensajes que requieren procesamiento asíncrono
   const handleAsyncMessage = async () => {
     try {
@@ -138,10 +145,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           const tab = await getActiveTab();
           return { success: true, tabId: tab.id, url: tab.url };
 
+        case 'selectorAdded':
+          // Validar que tenemos toda la información necesaria
+          if (!message.domain || !message.selector || !message.type) {
+            throw new Error('Faltan datos requeridos para selectorAdded');
+          }
+          console.log('Selector añadido:', {
+            domain: message.domain,
+            selector: message.selector,
+            type: message.type
+          });
+          return { success: true };
+
         case 'updateExtensionState':
           if (!message.state) {
             throw new Error('Estado no proporcionado');
           }
+          
+          if (message.state.extensionActive) {
+            const tab = await getActiveTab();
+            if (tab && (tab.url.includes('chatgpt.com') || tab.url.includes('chat.openai.com'))) {
+              console.log('Activación manual requerida para ChatGPT');
+            }
+          }
+          
           await chrome.storage.local.set({
             extensionActive: message.state.extensionActive,
             editMode: message.state.editMode,
@@ -154,17 +181,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           if (!message.tabId || !message.data) {
             throw new Error('ID de pestaña o datos no proporcionados');
           }
-          
-          // Verificar si la pestaña existe antes de enviar el mensaje
-          const tabExists = await chrome.tabs.get(message.tabId).catch(() => null);
-          if (!tabExists) {
-            throw new Error(`La pestaña ${message.tabId} no existe`);
-          }
-          
-          await chrome.tabs.sendMessage(message.tabId, message.data);
+          await sendMessageToTabSafely(message.tabId, message.data);
           return { success: true };
 
         default:
+          if (message.target === 'background') {
+            return { success: true, source: "background" };
+          }
           throw new Error('Acción no reconocida: ' + message.action);
       }
     } catch (error) {
@@ -201,10 +224,9 @@ self.addEventListener('activate', (event) => {
       await clients.claim();
       console.log('Service Worker activado y reclamado');
       
-      // Intentar obtener la pestaña activa después de la activación
       try {
         const tab = await getActiveTab();
-        if (tab) {
+        if (tab && await isTabValidForMessaging(tab.id)) {
           activeTabId = tab.id;
           tabsCache.set(activeTabId, tab);
         }

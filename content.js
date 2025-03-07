@@ -76,10 +76,18 @@ function injectGlobalStyles() {
  * SOLO si la extensión está activa y solo al dominio actual.
  */
 function applyStoredModifications() {
+  // Verificar primero si estamos en chatgpt.com o similar
+  if (window.location.hostname.includes('chatgpt.com') || 
+      window.location.hostname.includes('chat.openai.com')) {
+    // No aplicar modificaciones automáticamente en ChatGPT
+    console.log('Extensión en modo manual para ChatGPT');
+    return;
+  }
+
   injectGlobalStyles();
 
   try {
-    // Primero verificamos si la extensión está activa
+    // Verificamos si la extensión está activa
     chrome.storage.local.get("extensionActive", extensionData => {
       if (chrome.runtime.lastError) {
         console.error("Error al verificar extensionActive:", chrome.runtime.lastError);
@@ -100,62 +108,65 @@ function applyStoredModifications() {
         return;
       }
       
-      // Luego quitamos todas las clases de blur y delete para empezar desde cero
-      document.querySelectorAll(".blur-extension").forEach(el => {
-        el.classList.remove("blur-extension");
-      });
-      
-      document.querySelectorAll(".delete-extension").forEach(el => {
-        el.classList.remove("delete-extension");
-      });
-      
-      // Y solo si la extensión está activa, aplicamos las modificaciones SÓLO para el dominio actual
-      chrome.storage.local.get(["blurSelectors", "deleteSelectors"], data => {
-        if (chrome.runtime.lastError) {
-          console.error("Error al obtener selectores:", chrome.runtime.lastError);
-          return;
-        }
+      // Solo aplicar modificaciones si la extensión está activa
+      if (isActive) {
+        // Luego quitamos todas las clases de blur y delete para empezar desde cero
+        document.querySelectorAll(".blur-extension").forEach(el => {
+          el.classList.remove("blur-extension");
+        });
         
-        // Aplicar blur SOLO para el dominio actual
-        const blurStore = data.blurSelectors || {};
-        if (blurStore[currentDomain] && Array.isArray(blurStore[currentDomain])) {
-          blurStore[currentDomain].forEach(item => {
-            const selector = (typeof item === "string") ? item : item.selector;
-            try {
-              document.querySelectorAll(selector).forEach(el => {
-                if (
-                  !el.classList.contains("ratitas-rojas") &&
-                  !el.classList.contains("icono-visible")
-                ) {
-                  el.classList.add("blur-extension");
-                }
-              });
-            } catch (err) {
-              console.warn("No se pudo aplicar blur al selector:", selector, err);
-            }
-          });
-        }
+        document.querySelectorAll(".delete-extension").forEach(el => {
+          el.classList.remove("delete-extension");
+        });
         
-        // Aplicar delete SOLO para el dominio actual
-        const deleteStore = data.deleteSelectors || {};
-        if (deleteStore[currentDomain] && Array.isArray(deleteStore[currentDomain])) {
-          deleteStore[currentDomain].forEach(item => {
-            const selector = (typeof item === "string") ? item : item.selector;
-            try {
-              document.querySelectorAll(selector).forEach(el => {
-                if (
-                  !el.classList.contains("ratitas-rojas") &&
-                  !el.classList.contains("icono-visible")
-                ) {
-                  el.classList.add("delete-extension");
-                }
-              });
-            } catch (err) {
-              console.warn("No se pudo aplicar borrado al selector:", selector, err);
-            }
-          });
-        }
-      });
+        // Y solo si la extensión está activa, aplicamos las modificaciones SÓLO para el dominio actual
+        chrome.storage.local.get(["blurSelectors", "deleteSelectors"], data => {
+          if (chrome.runtime.lastError) {
+            console.error("Error al obtener selectores:", chrome.runtime.lastError);
+            return;
+          }
+          
+          // Aplicar blur SOLO para el dominio actual
+          const blurStore = data.blurSelectors || {};
+          if (blurStore[currentDomain] && Array.isArray(blurStore[currentDomain])) {
+            blurStore[currentDomain].forEach(item => {
+              const selector = (typeof item === "string") ? item : item.selector;
+              try {
+                document.querySelectorAll(selector).forEach(el => {
+                  if (
+                    !el.classList.contains("ratitas-rojas") &&
+                    !el.classList.contains("icono-visible")
+                  ) {
+                    el.classList.add("blur-extension");
+                  }
+                });
+              } catch (err) {
+                console.warn("No se pudo aplicar blur al selector:", selector, err);
+              }
+            });
+          }
+          
+          // Aplicar delete SOLO para el dominio actual
+          const deleteStore = data.deleteSelectors || {};
+          if (deleteStore[currentDomain] && Array.isArray(deleteStore[currentDomain])) {
+            deleteStore[currentDomain].forEach(item => {
+              const selector = (typeof item === "string") ? item : item.selector;
+              try {
+                document.querySelectorAll(selector).forEach(el => {
+                  if (
+                    !el.classList.contains("ratitas-rojas") &&
+                    !el.classList.contains("icono-visible")
+                  ) {
+                    el.classList.add("delete-extension");
+                  }
+                });
+              } catch (err) {
+                console.warn("No se pudo aplicar borrado al selector:", selector, err);
+              }
+            });
+          }
+        });
+      }
     });
   } catch (error) {
     console.error("Error al aplicar modificaciones:", error);
@@ -480,6 +491,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         
         switch(msg.action) {
           case "toggleExtension":
+            // Permitir la activación explícita incluso en ChatGPT
             if (msg.enable) {
               await applyStoredModifications();
               startObserver();
@@ -572,6 +584,13 @@ function turnOffExtension() {
  * Útil cuando se activa/desactiva la extensión o se cambian ajustes.
  */
 function reApplyModifications() {
+  // Verificar si estamos en chatgpt.com o similar
+  if (window.location.hostname.includes('chatgpt.com') || 
+      window.location.hostname.includes('chat.openai.com')) {
+    console.log('Extensión en modo manual para ChatGPT');
+    return;
+  }
+
   // Primero aplicamos las clases y estilos
   applyStoredModifications();
   
