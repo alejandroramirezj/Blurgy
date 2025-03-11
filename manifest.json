@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Blurgy - Fun Blur Manager",
+  "name": "Blurgy",
   "version": "1.0",
-  "description": "Difumina elementos en cualquier sitio.",
+  "description": "Difumina o elimina elementos de cualquier página web",
   "icons": {
     "16": "blur16.png",
     "48": "blur48.png",
@@ -34,22 +34,10 @@
       "all_frames": true
     }
   ],
-  "web_accessible_resources": [{
-    "resources": [
-      "blur.png",
-      "borrar.png",
-      "desactivado.png",
-      "blur16.png",
-      "blur48.png",
-      "blur128.png",
-      "borrar16.png",
-      "borrar48.png",
-      "borrar128.png",
-      "desactivado16.png",
-      "desactivado48.png",
-      "desactivado128.png",
-      "motion.js"
-    ],
-    "matches": ["<all_urls>"]
-  }]
+  "web_accessible_resources": [
+    {
+      "resources": ["blur.png", "borrar.png", "editar.png", "desactivado.png"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }

@@ -5,16 +5,45 @@
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Responder inmediatamente para evitar errores de comunicación
   if (message && message.action === "ping") {
+    console.log("Ping recibido, respondiendo inmediatamente");
     sendResponse({ success: true, source: "background", alive: true });
-  } else {
-    sendResponse({ success: true, source: "background" });
+    return false; // No mantener canal abierto
   }
-  return true; // Mantener el canal abierto
+  
+  // Para mensajes de actualización de estado del popup
+  if (message && message.action === "updatePopupState") {
+    // Actualizamos el estado en storage para mantener sincronización
+    if (message.state) {
+      console.log("Actualizando estado del popup:", message.state);
+      chrome.storage.local.set(message.state)
+        .then(() => {
+          // Sincronizar el icono si cambió el estado de la extensión
+          if (message.state.hasOwnProperty('extensionActive')) {
+            syncIconWithState(message.state.extensionActive);
+          }
+          sendResponse({ success: true, source: "background", state: message.state });
+        })
+        .catch(error => {
+          console.error("Error actualizando estado:", error);
+          sendResponse({ success: false, error: error.message });
+        });
+      return true; // Mantener canal abierto para la respuesta asíncrona
+    }
+    
+    // Simplemente confirmamos que recibimos el mensaje
+    sendResponse({ success: true, source: "background" });
+    return false;
+  }
+  
+  // Para otros mensajes
+  sendResponse({ success: true, source: "background" });
+  return false; // No mantener canal abierto
 });
 
 // Al instalar/iniciar, sincronizamos el icono con el estado en storage y configuramos los blurs por defecto.
 chrome.runtime.onInstalled.addListener(() => {
   try {
+    console.log("Extensión instalada/actualizada");
     syncIconWithState();
     setDefaultBlurSelectors();
   } catch (error) {
@@ -24,6 +53,7 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.runtime.onStartup.addListener(() => {
   try {
+    console.log("Extensión iniciada");
     syncIconWithState();
   } catch (error) {
     console.error("Error durante el inicio:", error);
@@ -34,6 +64,7 @@ chrome.runtime.onStartup.addListener(() => {
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "local" && changes.extensionActive) {
     try {
+      console.log("Cambio detectado en extensionActive:", changes.extensionActive.newValue);
       syncIconWithState(changes.extensionActive.newValue);
     } catch (error) {
       console.error("Error al sincronizar icono:", error);
@@ -126,95 +157,92 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 
 // Manejar mensajes desde el popup o content script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  // Para mensajes de ping, responder inmediatamente
-  if (message.action === "ping") {
-    sendResponse({ 
-      success: true, 
-      source: "background", 
-      alive: true,
-      serviceWorkerActive: true 
-    });
-    return false;
-  }
+  try {
+    // Para mensajes de ping, responder inmediatamente
+    if (message.action === "ping") {
+      sendResponse({ 
+        success: true, 
+        source: "background", 
+        alive: true,
+        serviceWorkerActive: true 
+      });
+      return false;
+    }
 
-  // Para mensajes que requieren procesamiento asíncrono
-  const handleAsyncMessage = async () => {
-    try {
-      switch (message.action) {
-        case 'getActiveTab':
-          const tab = await getActiveTab();
-          return { success: true, tabId: tab.id, url: tab.url };
-
-        case 'selectorAdded':
-          // Validar que tenemos toda la información necesaria
-          if (!message.domain || !message.selector || !message.type) {
-            throw new Error('Faltan datos requeridos para selectorAdded');
+    // Para mensajes que requieren procesamiento inmediato
+    switch (message.action) {
+      case 'getActiveTab':
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          if (tabs && tabs.length > 0) {
+            sendResponse({ success: true, tabId: tabs[0].id, url: tabs[0].url });
+          } else {
+            sendResponse({ success: false, error: 'No se encontró pestaña activa' });
           }
+        });
+        return false; // No mantener canal abierto
+
+      case 'selectorAdded':
+        // Validar que tenemos toda la información necesaria
+        if (!message.domain || !message.selector || !message.type) {
+          sendResponse({ success: false, error: 'Faltan datos requeridos para selectorAdded' });
+        } else {
           console.log('Selector añadido:', {
             domain: message.domain,
             selector: message.selector,
             type: message.type
           });
-          return { success: true };
+          sendResponse({ success: true });
+        }
+        return false;
 
-        case 'updateExtensionState':
-          if (!message.state) {
-            throw new Error('Estado no proporcionado');
-          }
-          
-          if (message.state.extensionActive) {
-            const tab = await getActiveTab();
-            if (tab && (tab.url.includes('chatgpt.com') || tab.url.includes('chat.openai.com'))) {
-              console.log('Activación manual requerida para ChatGPT');
-            }
-          }
-          
-          await chrome.storage.local.set({
-            extensionActive: message.state.extensionActive,
-            editMode: message.state.editMode,
-            deleteMode: message.state.deleteMode
+      case 'updateExtensionState':
+        if (!message.state) {
+          sendResponse({ success: false, error: 'Estado no proporcionado' });
+          return false;
+        }
+        
+        chrome.storage.local.set({
+          extensionActive: message.state.extensionActive,
+          editMode: message.state.editMode,
+          deleteMode: message.state.deleteMode
+        }).then(() => {
+          syncIconWithState(message.state.extensionActive);
+          sendResponse({ success: true, state: message.state });
+        }).catch(error => {
+          sendResponse({ success: false, error: error.message });
+        });
+        return false;
+
+      case 'sendMessageToTab':
+        if (!message.tabId || !message.data) {
+          sendResponse({ success: false, error: 'ID de pestaña o datos no proporcionados' });
+        } else {
+          // Enviamos el mensaje sin esperar respuesta
+          chrome.tabs.sendMessage(message.tabId, message.data).catch(() => {
+            console.log('Error enviando mensaje a la pestaña, posiblemente no disponible');
           });
-          await syncIconWithState(message.state.extensionActive);
-          return { success: true, state: message.state };
+          sendResponse({ success: true });
+        }
+        return false;
 
-        case 'sendMessageToTab':
-          if (!message.tabId || !message.data) {
-            throw new Error('ID de pestaña o datos no proporcionados');
-          }
-          await sendMessageToTabSafely(message.tabId, message.data);
-          return { success: true };
+      case 'updatePopupState':
+        // Solo confirmamos recepción
+        sendResponse({ success: true });
+        return false;
 
-        default:
-          if (message.target === 'background') {
-            return { success: true, source: "background" };
-          }
-          throw new Error('Acción no reconocida: ' + message.action);
-      }
-    } catch (error) {
-      console.error('Error en el service worker:', error);
-      return { success: false, error: error.message };
+      default:
+        if (message.target === 'background') {
+          sendResponse({ success: true, source: "background" });
+        } else {
+          sendResponse({ success: false, error: 'Acción no reconocida: ' + message.action });
+        }
+        return false;
     }
-  };
-
-  // Manejar la respuesta asíncrona
-  handleAsyncMessage()
-    .then(response => {
-      try {
-        sendResponse(response);
-      } catch (error) {
-        console.warn('Canal de mensajes cerrado:', error);
-      }
-    })
-    .catch(error => {
-      console.error('Error al manejar el mensaje asíncrono:', error);
-      try {
-        sendResponse({ success: false, error: error.message });
-      } catch (sendError) {
-        console.warn('Error al enviar respuesta de error:', sendError);
-      }
-    });
-
-  return true; // Indicamos que la respuesta será asíncrona
+  } catch (error) {
+    console.error('Error en el service worker:', error);
+    sendResponse({ success: false, error: error.message });
+    return false;
+  }
 });
 
 // Manejar la actualización del service worker
@@ -260,9 +288,11 @@ async function setDefaultBlurSelectors() {
 async function syncIconWithState(forceValue) {
   try {
     if (typeof forceValue === "boolean") {
+      console.log("Sincronizando icono con valor forzado:", forceValue);
       await setIcon(forceValue);
     } else {
       const data = await chrome.storage.local.get("extensionActive");
+      console.log("Sincronizando icono con valor de storage:", data.extensionActive);
       await setIcon(data.extensionActive ?? false);
     }
   } catch (error) {

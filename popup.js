@@ -222,6 +222,9 @@ document.addEventListener("DOMContentLoaded", () => {
       `;
       toggleExtensionBtn.className = `btn ${active ? "btn-secondary" : "btn-primary"}`;
       
+      // Actualizar iconos de estado
+      updateStateIcons();
+      
       // Usar la función segura
       safeUpdateCharacters();
     });
@@ -229,6 +232,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Reemplazar updateStateIcons para usar la función segura
   function updateStateIcons() {
+    console.log("Actualizando iconos de estado");
+    
     chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
       if (tabs && tabs.length > 0) {
         try {
@@ -236,6 +241,8 @@ document.addEventListener("DOMContentLoaded", () => {
           
           chrome.storage.local.get(["extensionActive", "blurSelectors", "deleteSelectors", "editTextSelectors"], data => {
             const isActive = data.extensionActive ?? false;
+            console.log("Estado de extensión activa:", isActive);
+            
             const disabledStateImage = document.getElementById("disabledStateImage");
             const disabledEditStateImage = document.getElementById("disabledEditStateImage");
             const blurStateImage = document.getElementById("blurStateImage");
@@ -255,15 +262,19 @@ document.addEventListener("DOMContentLoaded", () => {
             deleteStateImage.style.display = "none";
             editTextStateImage.style.display = "none";
             
-            // Hacemos las imágenes de estado más grandes
-            blurStateImage.style.width = "100px";
-            blurStateImage.style.height = "100px";
-            deleteStateImage.style.width = "100px";
-            deleteStateImage.style.height = "100px";
-            editTextStateImage.style.width = "100px";
-            editTextStateImage.style.height = "100px";
-            disabledStateImage.style.width = "100px";
-            disabledStateImage.style.height = "100px";
+            // Aplicar dimensiones correctas
+            const applyIconSize = (img) => {
+              if (img) {
+                img.style.width = "100px";
+                img.style.height = "100px";
+              }
+            };
+            
+            applyIconSize(blurStateImage);
+            applyIconSize(deleteStateImage);
+            applyIconSize(editTextStateImage);
+            applyIconSize(disabledStateImage);
+            if (disabledEditStateImage) applyIconSize(disabledEditStateImage);
             
             // Verificar si hay elementos configurados
             const hasBlurElements = data.blurSelectors && 
@@ -278,31 +289,41 @@ document.addEventListener("DOMContentLoaded", () => {
                                      data.editTextSelectors[domain] && 
                                      data.editTextSelectors[domain].length > 0;
             
-            // Si la extensión está desactivada
+            console.log("Elementos en el dominio:", {
+              blur: hasBlurElements,
+              delete: hasDeleteElements,
+              editText: hasEditTextElements
+            });
+            
+            // Si la extensión está desactivada, mostrar iconos de desactivado
             if (!isActive) {
-              // Mostrar las imágenes de desactivado según los elementos que haya
+              // Mostrar iconos de desactivado para cada tipo que tenga elementos
               if (hasBlurElements) {
                 disabledStateImage.style.display = "block";
+                disabledStateImage.src = "desactivado.png";
               }
               
               if (hasDeleteElements) {
-                deleteStateImage.src = "desactivado.png";
                 deleteStateImage.style.display = "block";
+                deleteStateImage.src = "desactivado.png";
               }
               
-              if (hasEditTextElements && disabledEditStateImage) {
-                disabledEditStateImage.style.display = "block";
+              if (hasEditTextElements) {
+                editTextStateImage.style.display = "block";
+                editTextStateImage.src = "desactivado.png";
               }
               
-              // Si no hay elementos, mostrar la imagen de desactivado genérica
+              // Si no hay elementos de ningún tipo, mostrar al menos un icono de desactivado
               if (!hasBlurElements && !hasDeleteElements && !hasEditTextElements) {
                 disabledStateImage.style.display = "block";
+                disabledStateImage.src = "desactivado.png";
               }
               
+              console.log("Mostrando iconos de desactivado");
               return;
             }
             
-            // Si la extensión está activa, mostrar los iconos correspondientes
+            // Si la extensión está activa, mostrar iconos correspondientes
             if (hasBlurElements) {
               blurStateImage.style.display = "block";
               blurStateImage.src = "blur.png";
@@ -318,13 +339,58 @@ document.addEventListener("DOMContentLoaded", () => {
               editTextStateImage.src = "editar.png";
             }
             
-            // Si no hay ningún elemento pero la extensión está activa
+            // Si no hay ningún elemento pero la extensión está activa, mostrar icono por defecto
             if (!hasBlurElements && !hasDeleteElements && !hasEditTextElements) {
               blurStateImage.style.display = "block";
+              blurStateImage.src = "blur.png";
             }
+            
+            console.log("Mostrando iconos de modos activos");
           });
         } catch (error) {
           console.error("Error al actualizar iconos de estado:", error);
+        }
+      }
+    });
+  }
+
+  // Reemplazar refreshStateIcons para que use la función updateStateIcons
+  function refreshStateIcons() {
+    console.log("Refrescando iconos de estado");
+    
+    // Llamar a la función principal de actualización de iconos
+    updateStateIcons();
+    
+    // Adicionalmente, actualizar el selector de modo basado en los estados actuales
+    chrome.storage.local.get(["extensionActive", "editMode", "deleteMode", "editTextMode"], data => {
+      const isActive = data.extensionActive ?? false;
+      const isEditMode = data.editMode ?? false;
+      const isDeleteMode = data.deleteMode ?? false;
+      const isEditTextMode = data.editTextMode ?? false;
+      
+      // Actualizar visibilidad del selector de modo
+      const modeSelector = document.getElementById("modeSelector");
+      if (modeSelector) {
+        modeSelector.style.display = isEditMode ? "grid" : "none";
+      }
+      
+      // Actualizar los iconos de modo pequeños en la barra inferior
+      const modeBlurIcon = document.getElementById("blurStateImage");
+      const modeDeleteIcon = document.getElementById("deleteStateImage");
+      const modeEditTextIcon = document.getElementById("editTextStateImage");
+      
+      if (modeBlurIcon && modeDeleteIcon && modeEditTextIcon) {
+        // Estos son los iconos pequeños abajo, no confundir con los grandes arriba
+        const smallIconsContainer = document.querySelector(".mode-icons");
+        if (smallIconsContainer) {
+          const smallBlurIcon = smallIconsContainer.querySelector("#blurStateImage");
+          const smallDeleteIcon = smallIconsContainer.querySelector("#deleteStateImage");
+          const smallEditTextIcon = smallIconsContainer.querySelector("#editTextStateImage");
+          
+          // Actualizar visibilidad basada en modos activos
+          if (smallBlurIcon) smallBlurIcon.style.display = (isActive && !isDeleteMode && !isEditTextMode) ? "block" : "none";
+          if (smallDeleteIcon) smallDeleteIcon.style.display = (isActive && isDeleteMode) ? "block" : "none";
+          if (smallEditTextIcon) smallEditTextIcon.style.display = (isActive && isEditTextMode) ? "block" : "none";
         }
       }
     });
@@ -441,146 +507,125 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Actualizar toggleExtensionBtn para usar la nueva función
-  toggleExtensionBtn.addEventListener("click", () => {
-    chrome.storage.local.get("extensionActive", data => {
-      const wasActive = data.extensionActive ?? true;
-      const newState = !wasActive;
-
-      chrome.storage.local.set({ extensionActive: newState }, () => {
-        refreshExtensionToggleUI();
+  // Función para activar la extensión (añadir esta función al inicio)
+  function activarExtension() {
+    console.log("Activando extensión");
+    // Activar la extensión directamente
+    chrome.storage.local.set({ extensionActive: true }, () => {
+      // Actualizar la UI del botón de toggle
+      const toggleButton = document.getElementById("toggleExtension");
+      if (toggleButton) {
+        toggleButton.querySelector(".toggle-text").textContent = "Desactivar Extensión";
+        toggleButton.className = "btn btn-secondary";
+      }
+      // Notificar al content script
+      sendMessageToContentScript({
+        action: "toggleExtension",
+        enable: true
+      }).then(response => {
+        console.log("Respuesta al activar extensión:", response);
+        // Actualizar iconos de estado
         updateStateIcons();
-        
-        // Usar la nueva función - manejar silenciosamente errores
-        sendMessageToContentScript({
-              action: "toggleExtension",
-              enable: newState
-        }).then(response => {
-          // Solo procesar respuesta si no es null
-          if (response) {
-            console.log("Respuesta del content script:", response);
-          }
-        }).catch(error => {
-          // Nunca debería llegar aquí porque siempre resolvemos
-          console.log("Error inesperado:", error.message);
-        });
-        
-        showNotification(newState ? "🎉 Extensión activada" : "👋 Extensión desactivada");
+        safeUpdateCharacters();
       });
     });
-  });
+  }
 
-  // Actualizar toggleEditMode para activar automáticamente la extensión si está desactivada
+  // Reemplazar la función toggleEditMode con la versión corregida
   function toggleEditMode() {
-    chrome.storage.local.get(["extensionActive", "editMode", "deleteMode", "editTextMode"], data => {
-      const isActive = data.extensionActive ?? false;
-      let isEditing = data.editMode ?? false;
-      const isDeleteMode = data.deleteMode ?? false;
-      const isEditTextMode = data.editTextMode ?? false;
+    console.log("toggleEditMode llamado");
+    
+    const toggle = document.getElementById("toggleEdit");
+    const editModeActive = toggle.checked;
+    const modeSelector = document.getElementById("modeSelector");
+
+    // Bloquear brevemente para evitar activaciones rápidas múltiples
+    toggle.disabled = true;
+    setTimeout(() => {
+      toggle.disabled = false;
+    }, 500);
+
+    chrome.storage.local.get(["extensionActive", "editMode"], data => {
+      const extensionActive = data.extensionActive === true;
+      console.log("Estado actual:", {extensionActive, editModeActive});
       
-      // Si la extensión no está activa, la activamos automáticamente
-      if (!isActive) {
-        // Activar la extensión primero
-        chrome.storage.local.set({ extensionActive: true }, () => {
-          // Luego activar el modo edición
-          chrome.storage.local.set({ editMode: true }, () => {
-        refreshExtensionToggleUI();
-            modeSelector.style.display = "grid";
-        refreshStateIcons();
-            
-            // Enviar mensaje al content script para activar la extensión y el modo edición
-            chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-              if (tabs && tabs.length > 0) {
-                // Primero activar la extensión
-                chrome.tabs.sendMessage(tabs[0].id, {
-                  action: "toggleExtension",
-                  enable: true
-                }, () => {
-                  // Luego activar el modo edición
-                  chrome.tabs.sendMessage(tabs[0].id, {
-                    action: "toggleEditMode",
-                    enable: true,
-                    deleteMode: isDeleteMode,
-                    editTextMode: isEditTextMode
-                  });
-                });
-              }
-            });
-            
-            // Añadir iconos de modo a la UI
-        createModeIcons();
+      if (editModeActive) {
+        console.log("Activando modo edición");
+        // Mostrar el selector de modos
+        modeSelector.style.display = "grid";
         
-            showNotification("🎯 Extensión y modo selección activados");
-          });
-        });
-        return;
-      }
-      
-      // Cambiar el modo edición
-      isEditing = !isEditing;
-      
-      if (isEditing) {
-        // Si activamos el toggle, activamos el modo edición
-        chrome.storage.local.set({ editMode: true }, async () => {
-          modeSelector.style.display = "grid";
-          refreshStateIcons();
-          
-          // Enviar mensaje al content script para activar modo edición
-          try {
-            await sendMessageToContentScript({
-              action: "toggleEditMode",
-              enable: true,
-              deleteMode: isDeleteMode,
-              editTextMode: isEditTextMode
-            });
-            
-            // También obtener el dominio actual y reconstruir la UI
-            chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-              if (tabs && tabs.length > 0) {
-                const domain = new URL(tabs[0].url).hostname;
-                buildDomainUI(domain);
-              }
-            });
-          } catch (error) {
-            console.error("Error al activar modo edición:", error);
-          }
-          
-          // Añadir iconos de modo a la UI
-          createModeIcons();
-        
-        showNotification("🎯 Modo selección activado");
-      });
-    } else {
-      // Si desactivamos el toggle, solo desactivamos el modo edición
-      chrome.storage.local.set({ editMode: false }, async () => {
-        modeSelector.style.display = "none";
-        refreshStateIcons();
-        
-        try {
-          await sendMessageToContentScript({
-            action: "toggleEditMode",
-            enable: false
-          });
-          
-          // Obtener el dominio actual y reconstruir la UI
-          chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-            if (tabs && tabs.length > 0) {
-              const domain = new URL(tabs[0].url).hostname;
-              buildDomainUI(domain);
-            }
-          });
-        } catch (error) {
-          console.error("Error al desactivar modo edición:", error);
+        // Asegurar que la extensión está activa
+        if (!extensionActive) {
+          console.log("La extensión no está activa, activándola");
+          activarExtension();
         }
         
-        showNotification("📌 Modo selección desactivado");
-      });
-    }
+        // Enviar mensaje al content script
+        sendMessageToContentScript({
+          action: "toggleEditMode",
+          enable: true
+        }).then(response => {
+          console.log("Respuesta al activar modo edición:", response);
+          
+          // Si no recibimos respuesta o hay error, revertir el cambio en la UI
+          if (!response || !response.success) {
+            console.warn("Error activando modo edición, revirtiendo UI");
+            toggle.checked = false;
+            modeSelector.style.display = "none";
+            return;
+          }
+          
+          // Actualizar storage
+          chrome.storage.local.set({ 
+            editMode: true,
+            extensionActive: true  // Asegurar que la extensión esté activa
+          }, () => {
+            updateStateIcons();
+            console.log("Modo edición activado y almacenado");
+          });
+        });
+      } else {
+        console.log("Desactivando modo edición");
+        // Ocultar el selector de modos
+        modeSelector.style.display = "none";
+        
+        // Enviar mensaje al content script
+        sendMessageToContentScript({
+          action: "toggleEditMode",
+          enable: false
+        }).then(response => {
+          console.log("Respuesta al desactivar modo edición:", response);
+          
+          // Actualizar storage
+          chrome.storage.local.set({ 
+            editMode: false
+          }, () => {
+            updateStateIcons();
+            console.log("Modo edición desactivado y almacenado");
+          });
+        });
+      }
     });
   }
   
-  // Actualizar switchModes para usar la nueva función
+  // Actualizar switchModes para mejor comunicación con el content script
   const switchModes = (isDeleteMode, isEditTextMode = false) => {
+    console.log(`Cambiando modo: delete=${isDeleteMode}, editText=${isEditTextMode}`);
+    
+    // Actualizar UI inmediatamente para mejor feedback
+    const modeOptions = document.querySelectorAll('.mode-option');
+    modeOptions.forEach(option => {
+      const mode = option.getAttribute('data-mode');
+      if ((mode === 'delete' && isDeleteMode) || 
+          (mode === 'editText' && isEditTextMode) || 
+          (mode === 'blur' && !isDeleteMode && !isEditTextMode)) {
+        option.classList.add('active');
+      } else {
+        option.classList.remove('active');
+      }
+    });
+    
+    // Primero guardar en storage
     chrome.storage.local.set({
       deleteMode: isDeleteMode,
       editTextMode: isEditTextMode
@@ -590,25 +635,13 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
       
-      // Luego notificamos al content script del cambio
-      chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-        if (tabs[0]) {
-          chrome.tabs.sendMessage(tabs[0].id, {
-            action: "changeMode",
-            deleteMode: isDeleteMode,
-            editTextMode: isEditTextMode
-          }, response => {
-            if (chrome.runtime.lastError) {
-              console.log("Content script no disponible o error:", chrome.runtime.lastError);
-              return;
-            }
-            
-            if (response && response.success) {
-              console.log("Modo cambiado exitosamente");
-              refreshStateIcons();
-            }
-          });
-        }
+      // Luego notificar al content script del cambio
+      sendMessageToContentScript({
+        action: "setMode",
+        mode: isDeleteMode ? "delete" : isEditTextMode ? "editText" : "blur"
+      }).then(response => {
+        console.log("Respuesta al cambiar modo:", response);
+        refreshStateIcons();
       });
     });
   };
@@ -640,42 +673,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Actualizar iconos de estado en base a la configuración y elementos en la página
-  function refreshStateIcons() {
-    chrome.storage.local.get(["extensionActive", "editMode", "deleteMode", "editTextMode"], data => {
-            const isActive = data.extensionActive ?? false;
-      const isEditMode = data.editMode ?? false;
-      const isDeleteMode = data.deleteMode ?? false;
-      const isEditTextMode = data.editTextMode ?? false;
-      
-      const disabledStateImage = document.getElementById("disabledStateImage");
-            const blurStateImage = document.getElementById("blurStateImage");
-            const deleteStateImage = document.getElementById("deleteStateImage");
-      const editTextStateImage = document.getElementById("editTextStateImage");
-      
-      if (disabledStateImage) {
-        disabledStateImage.style.display = isActive ? "none" : "block";
-      }
-      
-      if (blurStateImage) {
-        blurStateImage.style.display = (isActive && !isDeleteMode && !isEditTextMode) ? "block" : "none";
-      }
-      
-      if (deleteStateImage) {
-        deleteStateImage.style.display = (isActive && isDeleteMode) ? "block" : "none";
-      }
-      
-      if (editTextStateImage) {
-        editTextStateImage.style.display = (isActive && isEditTextMode) ? "block" : "none";
-      }
-      
-      const modeSelector = document.getElementById("modeSelector");
-      if (modeSelector) {
-        modeSelector.style.display = isEditMode ? "grid" : "none";
-      }
-    });
-  }
-  
   // Manejar el cambio de modo (blur o borrar)
   modeOptions.forEach(option => {
     option.addEventListener('click', (e) => {
@@ -1196,15 +1193,26 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
           const domain = new URL(tabs[0].url).hostname;
           
-          // Construir UI del dominio actual (activos y sugeridos)
-          buildDomainUI(domain);
-          buildSuggestionsUI(domain);
-          
-          // También intentar actualizar personajes si los hay
-          safeUpdateCharacters();
-          
-          // Y actualizar los iconos de estado
-          refreshStateIcons();
+          // Obtener el estado actual
+          chrome.storage.local.get(["extensionActive", "editMode", "deleteMode", "editTextMode"], data => {
+            console.log("Estado inicial:", data);
+            
+            // Actualizar checkbox del modo edición
+            toggleEdit.checked = data.editMode === true;
+            
+            // Mostrar/ocultar selector de modos
+            modeSelector.style.display = data.editMode ? "grid" : "none";
+            
+            // Construir UI del dominio actual (activos y sugeridos)
+            buildDomainUI(domain);
+            buildSuggestionsUI(domain);
+            
+            // También intentar actualizar personajes si los hay
+            safeUpdateCharacters();
+            
+            // Y actualizar los iconos de estado
+            refreshStateIcons();
+          });
         } catch (e) {
           console.error("Error al obtener dominio:", e);
         }

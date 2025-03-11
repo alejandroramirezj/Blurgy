@@ -18,6 +18,21 @@ let currentlyEditingElement = null;
 // Dominio actual de la página
 const currentDomain = window.location.hostname;
 
+// Añadir al inicio del archivo, después de las variables globales
+let retryCount = 0;
+const MAX_RETRIES = 3;
+let lastModificationTime = 0;
+const RETRY_DELAY = 1000; // 1 segundo entre reintentos
+
+// Añadir nueva variable global al inicio del archivo
+let activeDomains = new Set();
+
+// Variables globales al inicio del archivo
+let lastToggleTime = 0;
+const TOGGLE_DELAY = 300; // Aumentar para evitar activaciones accidentales
+let pendingToggle = false;
+let toggleLocked = false;
+
 /**
  * Inyecta estilos (.blur-extension, .delete-extension y .hover-highlight)
  * si aún no han sido inyectados.
@@ -25,6 +40,12 @@ const currentDomain = window.location.hostname;
 function injectGlobalStyles() {
   const existing = document.getElementById("blur-style-extension");
   if (!existing) {
+    // Obtener URLs seguras para las imágenes
+    const blurImageUrl = getSafeImageUrl('blur.png');
+    const borrarImageUrl = getSafeImageUrl('borrar.png');
+    const editarImageUrl = getSafeImageUrl('editar.png');
+    const desactivadoImageUrl = getSafeImageUrl('desactivado.png');
+    
     const styleEl = document.createElement("style");
     styleEl.id = "blur-style-extension";
     styleEl.textContent = `
@@ -73,31 +94,31 @@ function injectGlobalStyles() {
         left: 0 !important;
         width: 32px;
         height: 32px;
-        background-image: url(${chrome.runtime.getURL('blur.png')});
+        background-image: url(${blurImageUrl});
         background-size: contain;
         background-repeat: no-repeat;
       }
       .hover-highlight.delete-mode::before {
-        background-image: url(${chrome.runtime.getURL('borrar.png')}) !important;
+        background-image: url(${borrarImageUrl}) !important;
       }
       .hover-highlight.edit-text-mode::before {
-        background-image: url(${chrome.runtime.getURL('editar.png')}) !important;
+        background-image: url(${editarImageUrl}) !important;
       }
       /* Iconos de desactivado específicos para cada modo */
       .blur-extension.hover-highlight::before {
-        background-image: url(${chrome.runtime.getURL('desactivado.png')}) !important;
+        background-image: url(${desactivadoImageUrl}) !important;
       }
       .delete-extension.hover-highlight::before {
-        background-image: url(${chrome.runtime.getURL('desactivado.png')}) !important;
+        background-image: url(${desactivadoImageUrl}) !important;
       }
       .text-edit-extension.hover-highlight::before {
-        background-image: url(${chrome.runtime.getURL('desactivado.png')}) !important;
+        background-image: url(${desactivadoImageUrl}) !important;
       }
       /* Fallback si no existen las imágenes específicas */
       .blur-extension.hover-highlight::before,
       .delete-extension.hover-highlight::before,
       .text-edit-extension.hover-highlight::before {
-        background-image: url(${chrome.runtime.getURL('desactivado.png')}) !important;
+        background-image: url(${desactivadoImageUrl}) !important;
       }
       .blur-extension.hover-highlight:hover {
         filter: none !important; /* Evita el blur en el hover */
@@ -108,100 +129,135 @@ function injectGlobalStyles() {
 }
 
 /**
- * Aplica las clases .blur-extension y .delete-extension a los selectores guardados
- * SOLO si la extensión está activa y solo al dominio actual.
+ * Aplica las modificaciones con sistema de reintentos
  */
-function applyStoredModifications() {
+async function applyStoredModificationsWithRetry() {
+  if (Date.now() - lastModificationTime < RETRY_DELAY) {
+    return; // Evitar llamadas demasiado frecuentes
+  }
+  
   try {
-    // Verificar que el runtime de Chrome está disponible
-    if (!chrome || !chrome.runtime) {
-      console.warn('Runtime de Chrome no disponible');
-      return;
-    }
-
-    // Obtener el dominio actual de forma segura
+    // Obtener el dominio actual
     const currentDomain = window.location.hostname;
-    if (!currentDomain) {
-      console.warn('No se pudo obtener el dominio actual');
+    
+    // Si no hay dominio o no está en la lista de dominios activos, salir
+    if (!currentDomain || !activeDomains.has(currentDomain)) {
+      console.log('Dominio no activado:', currentDomain);
       return;
     }
 
-    // Verificar primero si estamos en chatgpt.com o similar
+    // Verificar si estamos en chatgpt.com o similar
     if (currentDomain.includes('chatgpt.com') || 
         currentDomain.includes('chat.openai.com')) {
       console.log('Extensión en modo manual para ChatGPT');
       return;
     }
 
+    // Inyectar estilos
     injectGlobalStyles();
 
-    // Verificamos si la extensión está activa
-    chrome.storage.local.get(["extensionActive", "blurSelectors", "deleteSelectors", "editTextSelectors"], data => {
-      if (chrome.runtime.lastError) {
-        console.error("Error al obtener datos:", chrome.runtime.lastError);
-        return;
-      }
-      
-      const isActive = data.extensionActive ?? false;
-      
-      // Si la extensión está desactivada, eliminar todos los efectos y salir
-      if (!isActive) {
-        removeAllModifications();
-        return;
-      }
-      
-      // Solo aplicar modificaciones si la extensión está activa
-      if (isActive) {
-        // Limpiar modificaciones existentes
-        removeAllModifications();
-        
-        // Aplicar modificaciones para el dominio actual
-        const blurStore = data.blurSelectors?.[currentDomain] || [];
-        const deleteStore = data.deleteSelectors?.[currentDomain] || [];
-        const editTextStore = data.editTextSelectors?.[currentDomain] || [];
+    return new Promise((resolve, reject) => {
+      const tryApply = () => {
+        chrome.storage.local.get(["extensionActive", "blurSelectors", "deleteSelectors", "editTextSelectors"], data => {
+          if (chrome.runtime.lastError) {
+            if (retryCount < MAX_RETRIES) {
+              retryCount++;
+              setTimeout(tryApply, RETRY_DELAY);
+              return;
+            }
+            reject(chrome.runtime.lastError);
+            return;
+          }
 
-        // Aplicar blur
-        blurStore.forEach(item => {
-          const selector = (typeof item === "string") ? item : item.selector;
-          applyModification(selector, "blur-extension");
-        });
+          try {
+            const isActive = data.extensionActive ?? false;
+            if (!isActive) {
+              removeAllModifications();
+              resolve();
+              return;
+            }
 
-        // Aplicar delete
-        deleteStore.forEach(item => {
-          const selector = (typeof item === "string") ? item : item.selector;
-          applyModification(selector, "delete-extension");
-        });
+            // Limpiar modificaciones existentes
+            removeAllModifications();
 
-        // Aplicar edit text
-        editTextStore.forEach(item => {
-          if (typeof item !== "object") return;
-          const selector = item.selector;
-          const customText = item.customText || "";
-          if (!customText.trim()) return;
-          
-          applyModification(selector, "text-edit-extension", customText);
+            // Obtener los selectores solo para el dominio actual
+            const blurSelectors = (data.blurSelectors?.[currentDomain] || [])
+              .map(item => typeof item === "string" ? item : item.selector);
+            
+            const deleteSelectors = (data.deleteSelectors?.[currentDomain] || [])
+              .map(item => typeof item === "string" ? item : item.selector);
+            
+            const editTextSelectors = (data.editTextSelectors?.[currentDomain] || [])
+              .filter(item => typeof item === "object" && item.customText)
+              .map(item => ({
+                selector: item.selector,
+                customText: item.customText
+              }));
+
+            // Aplicar las modificaciones de forma segura
+            safeApplyModifications(blurSelectors, deleteSelectors, editTextSelectors);
+            
+            lastModificationTime = Date.now();
+            retryCount = 0;
+            resolve();
+          } catch (error) {
+            if (retryCount < MAX_RETRIES) {
+              retryCount++;
+              setTimeout(tryApply, RETRY_DELAY);
+            } else {
+              reject(error);
+            }
+          }
         });
-      }
+      };
+
+      tryApply();
     });
   } catch (error) {
-    console.error("Error al aplicar modificaciones:", error);
+    console.warn('Error al aplicar modificaciones:', error);
+    if (retryCount < MAX_RETRIES) {
+      retryCount++;
+      setTimeout(() => applyStoredModificationsWithRetry(), RETRY_DELAY);
+    }
   }
 }
 
-// Función auxiliar para remover todas las modificaciones
-function removeAllModifications() {
-  document.querySelectorAll(".blur-extension, .delete-extension, .text-edit-extension").forEach(el => {
-    el.classList.remove("blur-extension", "delete-extension", "text-edit-extension");
-    el.removeAttribute("data-custom-text");
+/**
+ * Aplica las modificaciones de forma segura
+ */
+function safeApplyModifications(blurSelectors, deleteSelectors, editTextSelectors) {
+  const applyWithRetry = (selector, className, customText = "") => {
+    try {
+      applyModification(selector, className, customText);
+    } catch (error) {
+      console.warn(`Error al aplicar ${className} a ${selector}:`, error);
+    }
+  };
+
+  // Aplicar cada tipo de modificación
+  blurSelectors.forEach(selector => applyWithRetry(selector, "blur-extension"));
+  deleteSelectors.forEach(selector => applyWithRetry(selector, "delete-extension"));
+  editTextSelectors.forEach(({selector, customText}) => 
+    applyWithRetry(selector, "text-edit-extension", customText)
+  );
+}
+
+// Reemplazar la función original applyStoredModifications
+function applyStoredModifications() {
+  applyStoredModificationsWithRetry().catch(error => {
+    console.warn('Error final al aplicar modificaciones:', error);
   });
 }
 
-// Función auxiliar para aplicar una modificación específica
+// Función auxiliar para aplicar una modificación específica de forma segura
 function applyModification(selector, className, customText = "") {
   try {
-    document.querySelectorAll(selector).forEach(el => {
+    const elements = document.querySelectorAll(selector);
+    elements.forEach(el => {
+      if (!el || !el.classList) return;
+      
       if (!el.classList.contains("ratitas-rojas") && !el.classList.contains("icono-visible")) {
-        if (className === "text-edit-extension") {
+        if (className === "text-edit-extension" && customText) {
           if (!el.hasAttribute("data-original-text")) {
             el.setAttribute("data-original-text", el.textContent.trim());
           }
@@ -211,7 +267,21 @@ function applyModification(selector, className, customText = "") {
       }
     });
   } catch (err) {
-    console.warn(`No se pudo aplicar ${className} al selector:`, selector, err);
+    // Ignorar errores silenciosamente para no interrumpir la ejecución
+  }
+}
+
+// Función auxiliar para remover modificaciones de forma segura
+function removeAllModifications() {
+  try {
+    document.querySelectorAll(".blur-extension, .delete-extension, .text-edit-extension").forEach(el => {
+      if (el && el.classList) {
+        el.classList.remove("blur-extension", "delete-extension", "text-edit-extension");
+        el.removeAttribute("data-custom-text");
+      }
+    });
+  } catch (err) {
+    // Ignorar errores silenciosamente
   }
 }
 
@@ -223,60 +293,136 @@ function applyModification(selector, className, customText = "") {
 function startObserver() {
   if (blurObserver) blurObserver.disconnect();
 
+  let timeoutId = null;
   blurObserver = new MutationObserver(() => {
-    applyStoredModifications();
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      applyStoredModifications();
+    }, 500); // Esperar 500ms entre llamadas
   });
-  blurObserver.observe(document.body, { childList: true, subtree: true });
+
+  blurObserver.observe(document.body, { 
+    childList: true, 
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['class', 'style']
+  });
 }
 
-/** Activa el modo edición (resaltar y clic para (des)aplicar modificaciones). */
+/** Activa el modo edición */
 function enableSelectionMode() {
-  chrome.storage.local.get(["extensionActive", "editMode"], data => {
-    const isActive = data.extensionActive ?? false;
-    const editModeEnabled = data.editMode ?? false;
+  // Prevenir activaciones rápidas múltiples
+  const now = Date.now();
+  if (now - lastToggleTime < TOGGLE_DELAY) {
+    console.log("Ignorando activación rápida", now - lastToggleTime);
+    return;
+  }
+  
+  // Actualizar timestamp para evitar activaciones múltiples
+  lastToggleTime = now;
+  console.log("Activando modo selección");
+  
+  // Verificar si la extensión está activa
+  chrome.storage.local.get("extensionActive", (data) => {
+    const extensionActive = data.extensionActive === true;
     
-    // Si la extensión no está activa o el modo edición está desactivado, no hacemos nada
-    if (!isActive) {
-      disableSelectionMode();
+    if (!extensionActive) {
+      console.log("La extensión no está activa, no se puede activar el modo selección");
       return;
     }
-
-    // Si el modo edición está activado, activamos la selección
-    if (editModeEnabled) {
-      selectionMode = true;
-      injectGlobalStyles();
-      
-      // Eliminar primero para evitar duplicados
-      document.removeEventListener("mouseover", highlightElement);
-      document.removeEventListener("mouseout", unhighlightElement);
-      document.removeEventListener("click", handleElementClick, true);
-      
-      // Añadir los listeners de eventos
-      document.addEventListener("mouseover", highlightElement);
-      document.addEventListener("mouseout", unhighlightElement);
-      document.addEventListener("click", handleElementClick, true);
-    } else {
-      disableSelectionMode();
-    }
     
-    applyStoredModifications();
+    // Activar modo selección y asegurar que el dominio está activo
+    selectionMode = true;
+    const currentDomain = window.location.hostname;
+    activeDomains.add(currentDomain);
+    
+    // Guardar estado
+    chrome.storage.local.set({ 
+      editMode: true,
+      activeDomains: Array.from(activeDomains)
+    });
+    
+    // Notificar al popup sobre el cambio de estado
+    chrome.runtime.sendMessage({
+      action: "updatePopupState",
+      state: {
+        editMode: true,
+        extensionActive: extensionActive,
+        deleteMode: deleteMode,
+        editTextMode: editTextMode,
+        domainActive: true
+      }
+    });
+    
+    // Inyectar estilos y añadir event listeners
+    injectGlobalStyles();
+    removeEventListeners(); // Primero remover para evitar duplicados
+    addEventListeners();
+    
+    console.log("Modo selección activado correctamente");
   });
 }
 
-/** Desactiva el modo edición. */
+/** Desactiva el modo edición */
 function disableSelectionMode() {
-  selectionMode = false;
+  // Prevenir desactivaciones rápidas múltiples
+  const now = Date.now();
+  if (now - lastToggleTime < TOGGLE_DELAY) {
+    console.log("Ignorando desactivación rápida", now - lastToggleTime);
+    return;
+  }
   
-  // Remover todos los listeners
+  // Actualizar timestamp para evitar desactivaciones múltiples
+  lastToggleTime = now;
+  console.log("Desactivando modo selección");
+
+  // Desactivar modo selección
+  selectionMode = false;
+  deleteMode = false;
+  editTextMode = false;
+  
+  // Limpiar
+  removeEventListeners();
+  cleanupHighlights();
+  
+  // Guardar estado
+  chrome.storage.local.set({ 
+    editMode: false,
+    deleteMode: false,
+    editTextMode: false
+  });
+  
+  // Notificar al popup sobre el cambio de estado
+  chrome.runtime.sendMessage({
+    action: "updatePopupState",
+    state: {
+      editMode: false,
+      deleteMode: false,
+      editTextMode: false
+    }
+  });
+  
+  console.log("Modo selección desactivado correctamente");
+}
+
+/** Limpia los event listeners */
+function removeEventListeners() {
   document.removeEventListener("mouseover", highlightElement);
   document.removeEventListener("mouseout", unhighlightElement);
   document.removeEventListener("click", handleElementClick, true);
-  
-  // Limpiar cualquier highlight que pudiera quedar
+}
+
+/** Añade los event listeners */
+function addEventListeners() {
+  document.addEventListener("mouseover", highlightElement);
+  document.addEventListener("mouseout", unhighlightElement);
+  document.addEventListener("click", handleElementClick, true);
+}
+
+/** Limpia los highlights */
+function cleanupHighlights() {
   document.querySelectorAll(".hover-highlight").forEach(el => {
-    el.classList.remove("hover-highlight");
-    el.classList.remove("delete-mode");
-    el.classList.remove("edit-text-mode");
+    el.classList.remove("hover-highlight", "delete-mode", "edit-text-mode");
     el.style.filter = "";
     el.style.position = "";
     el.style.zIndex = "";
@@ -358,60 +504,22 @@ function handleElementClick(evt) {
   evt.preventDefault();
   evt.stopPropagation();
 
-  const el = evt.target;
-  const selector = getCssPath(el);
+  // Usar requestAnimationFrame para mejorar el rendimiento
+  requestAnimationFrame(() => {
+    const el = evt.target;
+    const selector = getCssPath(el);
 
-  if (editTextMode) {
-    // Modo editar texto
-    showTextEditPrompt(el, selector);
-  } else if (deleteMode) {
-    // Modo borrar
-    if (el.classList.contains("delete-extension")) {
-      // Si ya está borrado, lo restauramos
-      el.classList.remove("delete-extension");
-      removeSelectorFromStorage(selector, "delete");
+    if (editTextMode) {
+      showTextEditPrompt(el, selector);
+    } else if (deleteMode) {
+      toggleDeleteMode(el, selector);
     } else {
-      // Si no, lo borramos
-      el.classList.add("delete-extension");
-      // Si estaba con blur o text-edit, quitamos esas clases
-      if (el.classList.contains("blur-extension")) {
-        el.classList.remove("blur-extension");
-        removeSelectorFromStorage(selector, "blur");
-      }
-      if (el.classList.contains("text-edit-extension")) {
-        el.classList.remove("text-edit-extension");
-        el.removeAttribute("data-custom-text");
-        removeSelectorFromStorage(selector, "editText");
-      }
-      addSelectorToStorage(selector, "delete");
+      toggleBlurMode(el, selector);
     }
-  } else {
-    // Modo blur
-    if (el.classList.contains("blur-extension")) {
-      // Si ya está difuminado, lo restauramos
-      el.classList.remove("blur-extension");
-      removeSelectorFromStorage(selector, "blur");
-    } else {
-      // Si no, lo difuminamos
-      el.classList.add("blur-extension");
-      // Si estaba borrado o text-edit, quitamos esas clases
-      if (el.classList.contains("delete-extension")) {
-        el.classList.remove("delete-extension");
-        removeSelectorFromStorage(selector, "delete");
-      }
-      if (el.classList.contains("text-edit-extension")) {
-        el.classList.remove("text-edit-extension");
-        el.removeAttribute("data-custom-text");
-        removeSelectorFromStorage(selector, "editText");
-      }
-      addSelectorToStorage(selector, "blur");
-    }
-  }
-  
-  // Quitamos siempre las clases de hover al hacer clic
-  el.classList.remove("hover-highlight");
-  el.classList.remove("delete-mode");
-  el.classList.remove("edit-text-mode");
+    
+    el.classList.remove("hover-highlight", "delete-mode", "edit-text-mode");
+  });
+
   return false;
 }
 
@@ -625,115 +733,186 @@ function removeSelectorFromStorage(selector, type = "blur") {
   });
 }
 
-/**
- * Recibe mensajes desde popup.js para:
- *  - ping: verificar si el content script está cargado
- *  - toggleExtension: activar/desactivar modificaciones
- *  - toggleEditMode: activar/desactivar modo edición
- *  - changeMode: cambiar entre modo blur y borrar
- *  - reApply: volver a aplicar las modificaciones sin refrescar
- */
+// Separar la lógica del modo borrar para mejor rendimiento
+function toggleDeleteMode(el, selector) {
+  if (el.classList.contains("delete-extension")) {
+    el.classList.remove("delete-extension");
+    removeSelectorFromStorage(selector, "delete");
+  } else {
+    el.classList.add("delete-extension");
+    if (el.classList.contains("blur-extension")) {
+      el.classList.remove("blur-extension");
+      removeSelectorFromStorage(selector, "blur");
+    }
+    if (el.classList.contains("text-edit-extension")) {
+      el.classList.remove("text-edit-extension");
+      el.removeAttribute("data-custom-text");
+      removeSelectorFromStorage(selector, "editText");
+    }
+    addSelectorToStorage(selector, "delete");
+  }
+}
+
+// Separar la lógica del modo blur para mejor rendimiento
+function toggleBlurMode(el, selector) {
+  if (el.classList.contains("blur-extension")) {
+    el.classList.remove("blur-extension");
+    removeSelectorFromStorage(selector, "blur");
+  } else {
+    el.classList.add("blur-extension");
+    if (el.classList.contains("delete-extension")) {
+      el.classList.remove("delete-extension");
+      removeSelectorFromStorage(selector, "delete");
+    }
+    if (el.classList.contains("text-edit-extension")) {
+      el.classList.remove("text-edit-extension");
+      el.removeAttribute("data-custom-text");
+      removeSelectorFromStorage(selector, "editText");
+    }
+    addSelectorToStorage(selector, "blur");
+  }
+}
+
+// Al inicio del archivo, después de las variables globales
+document.addEventListener('DOMContentLoaded', () => {
+  // Notificar que el content script está listo
+  try {
+    chrome.runtime.sendMessage({
+      action: "contentScriptReady",
+      domain: window.location.hostname
+    });
+  } catch (error) {
+    console.warn('No se pudo notificar que el content script está listo:', error);
+  }
+});
+
+// Modificar el listener de mensajes para mejorar la robustez
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  // Verificar que tenemos un mensaje válido y que chrome.runtime está disponible
-  if (!msg || typeof msg !== 'object' || !chrome.runtime) {
-    console.warn('Mensaje inválido o runtime no disponible');
-    sendResponse({ success: false, error: "Mensaje inválido o runtime no disponible" });
-    return false; // No esperamos respuesta asíncrona
+  if (!msg || typeof msg !== 'object') {
+    sendResponse({ success: false, error: "Mensaje inválido" });
+    return false;
   }
 
   try {
-    // Mensaje de ping para verificar que el content script está cargado
-    if (msg.action === "ping") {
-      sendResponse({ success: true, pong: true });
-      return false; // No esperamos respuesta asíncrona
-    }
-    
-    // Para mensajes que requieren respuesta asíncrona
-    const handleAsyncMessage = async () => {
-      try {
-        const data = await new Promise((resolve) => {
-          chrome.storage.local.get("extensionActive", resolve);
-        });
+    switch(msg.action) {
+      case "toggleEditMode":
+        console.log("toggleEditMode recibido:", msg.enable);
         
-        const isActive = data.extensionActive ?? false;
-        
-        switch(msg.action) {
-          case "toggleExtension":
-            // Permitir la activación explícita incluso en ChatGPT
-            if (msg.enable) {
-              await applyStoredModifications();
-              startObserver();
-            } else {
-              turnOffExtension();
-              disableSelectionMode();
-            }
-            return { success: true };
-            
-          case "toggleEditMode":
-            if (isActive) {
-              if (msg.deleteMode !== undefined) {
-                deleteMode = msg.deleteMode;
-              }
-              if (msg.editTextMode !== undefined) {
-                editTextMode = msg.editTextMode;
-              }
-              // Si enable es true, activamos el modo edición
-              if (msg.enable) {
-                enableSelectionMode();
-              } else {
-                disableSelectionMode();
-              }
-            }
-            return { success: true };
-            
-          case "changeMode":
-          case "changeDeleteMode":
-            deleteMode = msg.deleteMode ?? false;
-            editTextMode = msg.editTextMode ?? false;
-            document.querySelectorAll(".hover-highlight").forEach(el => {
-              if (deleteMode) {
-                el.classList.add("delete-mode");
-                el.classList.remove("edit-text-mode");
-              } else if (editTextMode) {
-                el.classList.add("edit-text-mode");
-                el.classList.remove("delete-mode");
-              } else {
-                el.classList.remove("delete-mode");
-                el.classList.remove("edit-text-mode");
-              }
-            });
-            return { success: true };
-            
-          case "reApply":
-            if (isActive) {
-              await reApplyModifications();
-            }
-            return { success: true };
-            
-          default:
-            return { success: false, error: "Acción desconocida: " + msg.action };
+        // Si el toggle está bloqueado, ignorar la solicitud
+        if (toggleLocked) {
+          console.log("Toggle bloqueado, ignorando solicitud");
+          sendResponse({ 
+            success: false, 
+            error: "Toggle bloqueado temporalmente",
+            editMode: selectionMode
+          });
+          return false;
         }
-      } catch (error) {
-        console.error("Error procesando mensaje:", error);
-        return { success: false, error: error.message };
-      }
-    };
+        
+        // Bloquear el toggle brevemente para evitar múltiples activaciones
+        toggleLocked = true;
+        setTimeout(() => {
+          toggleLocked = false;
+        }, TOGGLE_DELAY);
+        
+        if (msg.enable) {
+          // Verificar si la extensión está activa antes de activar el modo edición
+          chrome.storage.local.get("extensionActive", (data) => {
+            const extensionActive = data.extensionActive === true;
+            
+            if (extensionActive) {
+              enableSelectionMode();
+            } else {
+              console.log("No se puede activar el modo selección porque la extensión está desactivada");
+            }
+            
+            sendResponse({ 
+              success: true, 
+              domain: window.location.hostname, 
+              editMode: selectionMode,
+              extensionActive: extensionActive
+            });
+          });
+          return true; // Mantener canal abierto para la respuesta asíncrona
+        } else {
+          disableSelectionMode();
+          sendResponse({ 
+            success: true, 
+            domain: window.location.hostname, 
+            editMode: false
+          });
+        }
+        break;
 
-    // Manejar la respuesta asíncrona
-    handleAsyncMessage().then(response => {
-      try {
-        sendResponse(response);
-      } catch (error) {
-        console.warn('Canal de mensajes cerrado:', error);
-      }
-    });
-    
-    return true; // Indicamos que la respuesta será asíncrona
+      case "setMode":
+        if (msg.mode === "delete") {
+          deleteMode = true;
+          editTextMode = false;
+        } else if (msg.mode === "editText") {
+          deleteMode = false;
+          editTextMode = true;
+        } else {
+          deleteMode = false;
+          editTextMode = false;
+        }
+        chrome.storage.local.set({ 
+          deleteMode: deleteMode,
+          editTextMode: editTextMode
+        });
+        sendResponse({ success: true, mode: msg.mode });
+        break;
+
+      case "toggleExtension":
+        const currentDomain = window.location.hostname;
+        if (msg.enable) {
+          activeDomains.add(currentDomain);
+          // Guardar dominios activos inmediatamente
+          chrome.storage.local.set({ 
+            activeDomains: Array.from(activeDomains)
+          });
+          applyStoredModifications();
+          startObserver();
+        } else {
+          activeDomains.delete(currentDomain);
+          turnOffExtension();
+          disableSelectionMode();
+        }
+        sendResponse({ success: true, domain: currentDomain });
+        break;
+
+      case "reApply":
+        applyStoredModifications();
+        sendResponse({ success: true, domain: window.location.hostname });
+        break;
+
+      case "ping":
+        sendResponse({ 
+          success: true, 
+          domain: window.location.hostname,
+          selectionMode: selectionMode,
+          deleteMode: deleteMode,
+          editTextMode: editTextMode,
+          extensionActive: true
+        });
+        break;
+
+      default:
+        sendResponse({ 
+          success: false, 
+          error: "Acción desconocida", 
+          domain: window.location.hostname 
+        });
+    }
   } catch (error) {
-    console.error("Error procesando mensaje:", error);
-    sendResponse({ success: false, error: error.message });
-    return false;
+    console.error("Error en procesamiento de mensaje:", error);
+    sendResponse({ 
+      success: false, 
+      error: error.message,
+      domain: window.location.hostname 
+    });
   }
+  
+  return false; // No mantener el canal abierto por defecto
 });
 
 /**
@@ -828,31 +1007,56 @@ function reApplyModifications() {
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
 
+  console.log("Cambios en storage detectados:", Object.keys(changes));
+
   if (changes.extensionActive) {
     const newVal = changes.extensionActive.newValue;
+    console.log("Cambio en extensionActive:", newVal);
+    
     if (newVal) {
       applyStoredModifications();
       startObserver();
     } else {
       turnOffExtension();
+      // Si la extensión se desactiva, también desactivamos el modo edición
+      disableSelectionMode();
     }
   }
   
   if (changes.editMode) {
     const isEditing = changes.editMode.newValue;
+    console.log("Cambio en editMode:", isEditing);
+    
     if (isEditing) {
-      enableSelectionMode();
+      // Solo activamos si la extensión está activa
+      chrome.storage.local.get("extensionActive", data => {
+        if (data.extensionActive) {
+          // Evitar bucles infinitos comprobando el estado actual
+          if (!selectionMode) {
+            enableSelectionMode();
+          }
+        } else {
+          console.log("No se puede activar el modo edición porque la extensión está desactivada");
+          // Si la extensión no está activa, desactivar el modo edición en storage
+          chrome.storage.local.set({ editMode: false });
+        }
+      });
     } else {
-      disableSelectionMode();
+      // Evitar bucles infinitos comprobando el estado actual
+      if (selectionMode) {
+        disableSelectionMode();
+      }
     }
   }
   
   if (changes.deleteMode) {
     deleteMode = changes.deleteMode.newValue;
+    console.log("Cambio en deleteMode:", deleteMode);
   }
 
   if (changes.editTextMode) {
     editTextMode = changes.editTextMode.newValue;
+    console.log("Cambio en editTextMode:", editTextMode);
   }
 });
 
@@ -861,19 +1065,25 @@ chrome.storage.onChanged.addListener((changes, area) => {
  * sin necesidad de refrescar la página.
  * También verificamos si hay sugerencias predefinidas para este dominio.
  */
-chrome.storage.local.get(["extensionActive", "editMode", "deleteMode", "editTextMode", "blurSelectors", "deleteSelectors", "editTextSelectors"], data => {
+chrome.storage.local.get(["extensionActive", "editMode", "deleteMode", "editTextMode", "activeDomains"], data => {
   const isActive = data.extensionActive ?? false;
   const isEditing = data.editMode ?? false;
   deleteMode = data.deleteMode ?? false;
   editTextMode = data.editTextMode ?? false;
   const domain = window.location.hostname;
   
+  // Restaurar dominios activos del storage
+  if (data.activeDomains) {
+    activeDomains = new Set(data.activeDomains);
+  }
+  
   console.log("Estado inicial:", {
     isActive,
     isEditing,
     deleteMode,
     editTextMode,
-    domain: window.location.hostname
+    domain: domain,
+    isDomainActive: activeDomains.has(domain)
   });
   
   // Comprobar si ya tenemos configuraciones predefinidas cargadas
@@ -892,7 +1102,7 @@ chrome.storage.local.get(["extensionActive", "editMode", "deleteMode", "editText
     console.log("Dominio con configuraciones predefinidas disponibles:", domain);
   }
 
-  if (isActive) {
+  if (isActive && activeDomains.has(domain)) {
     applyStoredModifications();
     startObserver();
     
@@ -904,3 +1114,14 @@ chrome.storage.local.get(["extensionActive", "editMode", "deleteMode", "editText
     }
   }
 });
+
+// Función para manejar URLs de imágenes de forma segura
+function getSafeImageUrl(imageName) {
+  try {
+    return chrome.runtime.getURL(imageName);
+  } catch (error) {
+    console.warn(`No se pudo obtener URL para ${imageName}:`, error);
+    // Devolver una imagen transparente como fallback
+    return 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+  }
+}
