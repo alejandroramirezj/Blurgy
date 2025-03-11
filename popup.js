@@ -737,10 +737,11 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      // Construir sección de blurs
+      // Construir sección de blurs con color azul claro
       const blurStore = data.blurSelectors?.[domain] || [];
       if (blurStore.length > 0) {
         const blurDetails = document.createElement("details");
+        blurDetails.className = "blur-details"; // Aplicar clase para estilo azul
         blurDetails.innerHTML = `
           <summary>Blur (${blurStore.length})</summary>
           <div class="blur-items"></div>
@@ -776,13 +777,14 @@ document.addEventListener("DOMContentLoaded", () => {
         domainWrapper.appendChild(blurDetails);
       }
       
-      // Construir sección de textos editados
+      // Construir sección de Editados  con color amarillo claro
       const editTextStore = data.editTextSelectors?.[domain] || [];
       if (editTextStore.length > 0) {
         const editTextDetails = document.createElement("details");
+        editTextDetails.className = "edit-text-details"; // Aplicar clase para estilo amarillo
         editTextDetails.open = true;  // Aseguramos que esté desplegado por defecto
         editTextDetails.innerHTML = `
-          <summary>Textos Editados (${editTextStore.length})</summary>
+          <summary> Editados (${editTextStore.length})</summary>
         `;
         const editTextList = document.createElement("div");
         editTextList.className = "blur-items";
@@ -817,10 +819,11 @@ document.addEventListener("DOMContentLoaded", () => {
         domainWrapper.appendChild(editTextDetails);
       }
 
-      // Construir sección de borrados
+      // Construir sección de borrados con color rojo claro
       const deleteStore = data.deleteSelectors?.[domain] || [];
       if (deleteStore.length > 0) {
         const deleteDetails = document.createElement("details");
+        deleteDetails.className = "delete-details"; // Aplicar clase para estilo rojo
         deleteDetails.innerHTML = `
           <summary>Borrados (${deleteStore.length})</summary>
           <div class="blur-items"></div>
@@ -1495,6 +1498,38 @@ document.addEventListener("DOMContentLoaded", () => {
     .mode-option.active {
       font-weight: bold;
     }
+    
+    /* Estilos para los desplegables por tipo */
+    details.blur-details {
+      background-color: rgba(52, 152, 219, 0.1) !important;
+      border-left: 4px solid #3498db !important;
+    }
+    
+    details.edit-text-details {
+      background-color: rgba(241, 196, 15, 0.1) !important;
+      border-left: 4px solid #f1c40f !important;
+    }
+    
+    details.delete-details {
+      background-color: rgba(231, 76, 60, 0.1) !important;
+      border-left: 4px solid #e74c3c !important;
+    }
+    
+    details summary {
+      font-weight: bold;
+    }
+    
+    details.blur-details summary {
+      color: #2980b9;
+    }
+    
+    details.edit-text-details summary {
+      color: #d35400;
+    }
+    
+    details.delete-details summary {
+      color: #c0392b;
+    }
   `;
   document.head.appendChild(style);
 
@@ -1595,9 +1630,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const blurSuggestions = filteredSuggestions.filter(s => !s.type || s.type === "blur");
       const deleteSuggestions = filteredSuggestions.filter(s => s.type === "delete");
       
-      // Crear el grupo para sugerencias de blur
+      // Crear el grupo para sugerencias de blur con color azul claro
       if (blurSuggestions.length > 0) {
         const blurDetails = document.createElement("details");
+        blurDetails.className = "blur-details"; // Aplicar clase para estilo azul
         blurDetails.open = true;
         
         const blurSummary = document.createElement("summary");
@@ -1631,9 +1667,10 @@ document.addEventListener("DOMContentLoaded", () => {
         suggestedWrapper.appendChild(blurDetails);
       }
       
-      // Crear el grupo para sugerencias de delete
+      // Crear el grupo para sugerencias de delete con color rojo claro
       if (deleteSuggestions.length > 0) {
         const deleteDetails = document.createElement("details");
+        deleteDetails.className = "delete-details"; // Aplicar clase para estilo rojo
         deleteDetails.open = true;
         
         const deleteSummary = document.createElement("summary");
