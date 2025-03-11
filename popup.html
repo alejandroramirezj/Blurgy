@@ -646,9 +646,11 @@
   <div class="characters-container">
     <!-- Contenedor de imágenes de estado principal -->
     <div class="state-images-container">
-      <img id="disabledStateImage" src="desactivado.png" alt="Desactivado" class="state-image" />
+      <img id="disabledStateImage" src="desactivado.png" alt="Blur Desactivado" class="state-image" />
+      <img id="disabledEditStateImage" src="desactivado.png" alt="Edición Desactivada" class="state-image" style="display: none;" />
       <img id="blurStateImage" src="blur.png" alt="Blur" class="state-image" style="display: none;" />
       <img id="deleteStateImage" src="borrar.png" alt="Borrar" class="state-image" style="display: none;" />
+      <img id="editTextStateImage" src="editar.png" alt="Editar" class="state-image" style="display: none;" />
     </div>
   </div>
 
@@ -671,12 +673,15 @@
   </div>
 
   <!-- Contenedor de modos en una nueva fila -->
-  <div class="mode-selector" id="modeSelector" style="display: none; grid-template-columns: 1fr 1fr; gap: var(--spacing-md); margin-top: var(--spacing-md);">
+  <div class="mode-selector" id="modeSelector" style="display: none; grid-template-columns: 1fr 1fr 1fr; gap: var(--spacing-md); margin-top: var(--spacing-md);">
     <div class="mode-option" data-mode="blur">
       <span>Modo Blur</span>
     </div>
     <div class="mode-option" data-mode="delete">
       <span>Modo Borrar</span>
+    </div>
+    <div class="mode-option" data-mode="editText">
+      <span>Modo Editar</span>
     </div>
   </div>
 
@@ -708,6 +713,7 @@
   <div class="mode-icons">
     <img id="blurStateImage" class="mode-icon" src="blur.png" alt="Modo Blur" style="display: none;" />
     <img id="deleteStateImage" class="mode-icon" src="borrar.png" alt="Modo Borrado" style="display: none;" />
+    <img id="editTextStateImage" class="mode-icon" src="editar.png" alt="Modo Editar" style="display: none;" />
   </div>
 
   <script src="predefined_blurs.js"></script>

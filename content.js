@@ -9,6 +9,12 @@ let selectionMode = false;
 // Indica si estamos en modo borrar
 let deleteMode = false;
 
+// Indica si estamos en modo editar texto
+let editTextMode = false;
+
+// Almacena temporalmente el elemento que se está editando actualmente
+let currentlyEditingElement = null;
+
 // Dominio actual de la página
 const currentDomain = window.location.hostname;
 
@@ -26,21 +32,39 @@ function injectGlobalStyles() {
         filter: blur(5px) !important;
       }
       .delete-extension {
-        display: none !important;
+        visibility: hidden !important;
       }
-      .blur-extension.hover-highlight {
-        outline: 3px dashed #dc3545 !important;
-        background: rgba(220,53,69,0.1) !important;
-        cursor: pointer !important;
-        position: relative;
-        z-index: 998 !important;
+      .text-edit-extension {
+        position: relative !important;
+        color: transparent !important;
+      }
+      .text-edit-extension > * {
+        color: transparent !important;
+      }
+      .text-edit-extension::after {
+        content: attr(data-custom-text) !important;
+        display: block !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        color: initial !important;
+        background: inherit !important;
+        font: inherit !important;
+        font-size: inherit !important;
+        line-height: inherit !important;
+        text-align: inherit !important;
+        padding: inherit !important;
+        margin: inherit !important;
+        z-index: 1 !important;
       }
       .hover-highlight {
         outline: 3px dashed #007aff !important;
         background: rgba(0,122,255,0.1) !important;
         cursor: pointer !important;
-        position: relative;
-        z-index: 998 !important;
+        position: relative !important;
+        z-index: 2 !important;
       }
       .hover-highlight::before {
         content: '';
@@ -52,15 +76,27 @@ function injectGlobalStyles() {
         background-image: url(${chrome.runtime.getURL('blur.png')});
         background-size: contain;
         background-repeat: no-repeat;
-        z-index: 999999;
       }
       .hover-highlight.delete-mode::before {
         background-image: url(${chrome.runtime.getURL('borrar.png')}) !important;
       }
+      .hover-highlight.edit-text-mode::before {
+        background-image: url(${chrome.runtime.getURL('editar.png')}) !important;
+      }
+      /* Iconos de desactivado específicos para cada modo */
       .blur-extension.hover-highlight::before {
         background-image: url(${chrome.runtime.getURL('desactivado.png')}) !important;
       }
       .delete-extension.hover-highlight::before {
+        background-image: url(${chrome.runtime.getURL('desactivado.png')}) !important;
+      }
+      .text-edit-extension.hover-highlight::before {
+        background-image: url(${chrome.runtime.getURL('desactivado.png')}) !important;
+      }
+      /* Fallback si no existen las imágenes específicas */
+      .blur-extension.hover-highlight::before,
+      .delete-extension.hover-highlight::before,
+      .text-edit-extension.hover-highlight::before {
         background-image: url(${chrome.runtime.getURL('desactivado.png')}) !important;
       }
       .blur-extension.hover-highlight:hover {
@@ -76,100 +112,106 @@ function injectGlobalStyles() {
  * SOLO si la extensión está activa y solo al dominio actual.
  */
 function applyStoredModifications() {
-  // Verificar primero si estamos en chatgpt.com o similar
-  if (window.location.hostname.includes('chatgpt.com') || 
-      window.location.hostname.includes('chat.openai.com')) {
-    // No aplicar modificaciones automáticamente en ChatGPT
-    console.log('Extensión en modo manual para ChatGPT');
-    return;
-  }
-
-  injectGlobalStyles();
-
   try {
+    // Verificar que el runtime de Chrome está disponible
+    if (!chrome || !chrome.runtime) {
+      console.warn('Runtime de Chrome no disponible');
+      return;
+    }
+
+    // Obtener el dominio actual de forma segura
+    const currentDomain = window.location.hostname;
+    if (!currentDomain) {
+      console.warn('No se pudo obtener el dominio actual');
+      return;
+    }
+
+    // Verificar primero si estamos en chatgpt.com o similar
+    if (currentDomain.includes('chatgpt.com') || 
+        currentDomain.includes('chat.openai.com')) {
+      console.log('Extensión en modo manual para ChatGPT');
+      return;
+    }
+
+    injectGlobalStyles();
+
     // Verificamos si la extensión está activa
-    chrome.storage.local.get("extensionActive", extensionData => {
+    chrome.storage.local.get(["extensionActive", "blurSelectors", "deleteSelectors", "editTextSelectors"], data => {
       if (chrome.runtime.lastError) {
-        console.error("Error al verificar extensionActive:", chrome.runtime.lastError);
+        console.error("Error al obtener datos:", chrome.runtime.lastError);
         return;
       }
       
-      const isActive = extensionData.extensionActive ?? false;
+      const isActive = data.extensionActive ?? false;
       
       // Si la extensión está desactivada, eliminar todos los efectos y salir
       if (!isActive) {
-        document.querySelectorAll(".blur-extension").forEach(el => {
-          el.classList.remove("blur-extension");
-        });
-        
-        document.querySelectorAll(".delete-extension").forEach(el => {
-          el.classList.remove("delete-extension");
-        });
+        removeAllModifications();
         return;
       }
       
       // Solo aplicar modificaciones si la extensión está activa
       if (isActive) {
-        // Luego quitamos todas las clases de blur y delete para empezar desde cero
-        document.querySelectorAll(".blur-extension").forEach(el => {
-          el.classList.remove("blur-extension");
-        });
+        // Limpiar modificaciones existentes
+        removeAllModifications();
         
-        document.querySelectorAll(".delete-extension").forEach(el => {
-          el.classList.remove("delete-extension");
+        // Aplicar modificaciones para el dominio actual
+        const blurStore = data.blurSelectors?.[currentDomain] || [];
+        const deleteStore = data.deleteSelectors?.[currentDomain] || [];
+        const editTextStore = data.editTextSelectors?.[currentDomain] || [];
+
+        // Aplicar blur
+        blurStore.forEach(item => {
+          const selector = (typeof item === "string") ? item : item.selector;
+          applyModification(selector, "blur-extension");
         });
-        
-        // Y solo si la extensión está activa, aplicamos las modificaciones SÓLO para el dominio actual
-        chrome.storage.local.get(["blurSelectors", "deleteSelectors"], data => {
-          if (chrome.runtime.lastError) {
-            console.error("Error al obtener selectores:", chrome.runtime.lastError);
-            return;
-          }
+
+        // Aplicar delete
+        deleteStore.forEach(item => {
+          const selector = (typeof item === "string") ? item : item.selector;
+          applyModification(selector, "delete-extension");
+        });
+
+        // Aplicar edit text
+        editTextStore.forEach(item => {
+          if (typeof item !== "object") return;
+          const selector = item.selector;
+          const customText = item.customText || "";
+          if (!customText.trim()) return;
           
-          // Aplicar blur SOLO para el dominio actual
-          const blurStore = data.blurSelectors || {};
-          if (blurStore[currentDomain] && Array.isArray(blurStore[currentDomain])) {
-            blurStore[currentDomain].forEach(item => {
-              const selector = (typeof item === "string") ? item : item.selector;
-              try {
-                document.querySelectorAll(selector).forEach(el => {
-                  if (
-                    !el.classList.contains("ratitas-rojas") &&
-                    !el.classList.contains("icono-visible")
-                  ) {
-                    el.classList.add("blur-extension");
-                  }
-                });
-              } catch (err) {
-                console.warn("No se pudo aplicar blur al selector:", selector, err);
-              }
-            });
-          }
-          
-          // Aplicar delete SOLO para el dominio actual
-          const deleteStore = data.deleteSelectors || {};
-          if (deleteStore[currentDomain] && Array.isArray(deleteStore[currentDomain])) {
-            deleteStore[currentDomain].forEach(item => {
-              const selector = (typeof item === "string") ? item : item.selector;
-              try {
-                document.querySelectorAll(selector).forEach(el => {
-                  if (
-                    !el.classList.contains("ratitas-rojas") &&
-                    !el.classList.contains("icono-visible")
-                  ) {
-                    el.classList.add("delete-extension");
-                  }
-                });
-              } catch (err) {
-                console.warn("No se pudo aplicar borrado al selector:", selector, err);
-              }
-            });
-          }
+          applyModification(selector, "text-edit-extension", customText);
         });
       }
     });
   } catch (error) {
     console.error("Error al aplicar modificaciones:", error);
+  }
+}
+
+// Función auxiliar para remover todas las modificaciones
+function removeAllModifications() {
+  document.querySelectorAll(".blur-extension, .delete-extension, .text-edit-extension").forEach(el => {
+    el.classList.remove("blur-extension", "delete-extension", "text-edit-extension");
+    el.removeAttribute("data-custom-text");
+  });
+}
+
+// Función auxiliar para aplicar una modificación específica
+function applyModification(selector, className, customText = "") {
+  try {
+    document.querySelectorAll(selector).forEach(el => {
+      if (!el.classList.contains("ratitas-rojas") && !el.classList.contains("icono-visible")) {
+        if (className === "text-edit-extension") {
+          if (!el.hasAttribute("data-original-text")) {
+            el.setAttribute("data-original-text", el.textContent.trim());
+          }
+          el.setAttribute("data-custom-text", customText);
+        }
+        el.classList.add(className);
+      }
+    });
+  } catch (err) {
+    console.warn(`No se pudo aplicar ${className} al selector:`, selector, err);
   }
 }
 
@@ -189,33 +231,56 @@ function startObserver() {
 
 /** Activa el modo edición (resaltar y clic para (des)aplicar modificaciones). */
 function enableSelectionMode() {
-  selectionMode = true;
-  
-  // Asegurar que los estilos estén inyectados antes de activar el modo de selección
-  injectGlobalStyles();
-  
-  // Eliminar primero para evitar duplicados en caso de múltiples activaciones
-  document.removeEventListener("mouseover", highlightElement);
-  document.removeEventListener("mouseout", unhighlightElement);
-  document.removeEventListener("click", handleElementClick, true);
-  
-  // Añadir los listeners de eventos
-  document.addEventListener("mouseover", highlightElement);
-  document.addEventListener("mouseout", unhighlightElement);
-  document.addEventListener("click", handleElementClick, true);
-  
-  // Aplica elementos guardados para asegurar que todo esté actualizado
-  applyStoredModifications();
-  
-  console.log("Modo selección activado correctamente");
+  chrome.storage.local.get(["extensionActive", "editMode"], data => {
+    const isActive = data.extensionActive ?? false;
+    const editModeEnabled = data.editMode ?? false;
+    
+    // Si la extensión no está activa o el modo edición está desactivado, no hacemos nada
+    if (!isActive) {
+      disableSelectionMode();
+      return;
+    }
+
+    // Si el modo edición está activado, activamos la selección
+    if (editModeEnabled) {
+      selectionMode = true;
+      injectGlobalStyles();
+      
+      // Eliminar primero para evitar duplicados
+      document.removeEventListener("mouseover", highlightElement);
+      document.removeEventListener("mouseout", unhighlightElement);
+      document.removeEventListener("click", handleElementClick, true);
+      
+      // Añadir los listeners de eventos
+      document.addEventListener("mouseover", highlightElement);
+      document.addEventListener("mouseout", unhighlightElement);
+      document.addEventListener("click", handleElementClick, true);
+    } else {
+      disableSelectionMode();
+    }
+    
+    applyStoredModifications();
+  });
 }
 
 /** Desactiva el modo edición. */
 function disableSelectionMode() {
   selectionMode = false;
+  
+  // Remover todos los listeners
   document.removeEventListener("mouseover", highlightElement);
   document.removeEventListener("mouseout", unhighlightElement);
   document.removeEventListener("click", handleElementClick, true);
+  
+  // Limpiar cualquier highlight que pudiera quedar
+  document.querySelectorAll(".hover-highlight").forEach(el => {
+    el.classList.remove("hover-highlight");
+    el.classList.remove("delete-mode");
+    el.classList.remove("edit-text-mode");
+    el.style.filter = "";
+    el.style.position = "";
+    el.style.zIndex = "";
+  });
 }
 
 /**
@@ -237,6 +302,7 @@ function highlightElement(evt) {
     if (el !== evt.target) {
       el.classList.remove("hover-highlight");
       el.classList.remove("delete-mode");
+      el.classList.remove("edit-text-mode");
     }
   });
   
@@ -247,11 +313,16 @@ function highlightElement(evt) {
   // Aplicar las clases correspondientes
   evt.target.classList.add("hover-highlight");
   
-  // Si estamos en modo borrar, añadir la clase indicativa
+  // Aplicar clase según el modo actual
   if (deleteMode) {
     evt.target.classList.add("delete-mode");
+    evt.target.classList.remove("edit-text-mode");
+  } else if (editTextMode) {
+    evt.target.classList.add("edit-text-mode");
+    evt.target.classList.remove("delete-mode");
   } else {
     evt.target.classList.remove("delete-mode");
+    evt.target.classList.remove("edit-text-mode");
   }
   
   // Asegurar que el elemento es visible en modo hover
@@ -268,6 +339,7 @@ function unhighlightElement(evt) {
   
   evt.target.classList.remove("hover-highlight");
   evt.target.classList.remove("delete-mode");
+  evt.target.classList.remove("edit-text-mode");
   
   // Restaurar el blur si estaba aplicado
   if (evt.target.classList.contains("blur-extension")) {
@@ -289,7 +361,10 @@ function handleElementClick(evt) {
   const el = evt.target;
   const selector = getCssPath(el);
 
-  if (deleteMode) {
+  if (editTextMode) {
+    // Modo editar texto
+    showTextEditPrompt(el, selector);
+  } else if (deleteMode) {
     // Modo borrar
     if (el.classList.contains("delete-extension")) {
       // Si ya está borrado, lo restauramos
@@ -298,10 +373,15 @@ function handleElementClick(evt) {
     } else {
       // Si no, lo borramos
       el.classList.add("delete-extension");
-      // Si estaba con blur, quitamos el blur
+      // Si estaba con blur o text-edit, quitamos esas clases
       if (el.classList.contains("blur-extension")) {
         el.classList.remove("blur-extension");
         removeSelectorFromStorage(selector, "blur");
+      }
+      if (el.classList.contains("text-edit-extension")) {
+        el.classList.remove("text-edit-extension");
+        el.removeAttribute("data-custom-text");
+        removeSelectorFromStorage(selector, "editText");
       }
       addSelectorToStorage(selector, "delete");
     }
@@ -314,10 +394,15 @@ function handleElementClick(evt) {
     } else {
       // Si no, lo difuminamos
       el.classList.add("blur-extension");
-      // Si estaba borrado, quitamos el borrado
+      // Si estaba borrado o text-edit, quitamos esas clases
       if (el.classList.contains("delete-extension")) {
         el.classList.remove("delete-extension");
         removeSelectorFromStorage(selector, "delete");
+      }
+      if (el.classList.contains("text-edit-extension")) {
+        el.classList.remove("text-edit-extension");
+        el.removeAttribute("data-custom-text");
+        removeSelectorFromStorage(selector, "editText");
       }
       addSelectorToStorage(selector, "blur");
     }
@@ -326,7 +411,62 @@ function handleElementClick(evt) {
   // Quitamos siempre las clases de hover al hacer clic
   el.classList.remove("hover-highlight");
   el.classList.remove("delete-mode");
+  el.classList.remove("edit-text-mode");
   return false;
+}
+
+/**
+ * Muestra un prompt para editar el texto de un elemento
+ */
+function showTextEditPrompt(el, selector) {
+  // Guardamos el elemento actual para referencia
+  currentlyEditingElement = el;
+  
+  // Obtenemos el texto original
+  let originalText = el.getAttribute("data-original-text");
+  if (!originalText) {
+    originalText = el.textContent.trim();
+    el.setAttribute("data-original-text", originalText);
+  }
+  
+  // Obtenemos el texto personalizado actual si existe
+  const currentCustomText = el.getAttribute("data-custom-text") || "";
+  const textToEdit = currentCustomText || originalText;
+  
+  // Mostramos el prompt para editar
+  const newText = prompt("Editar texto:", textToEdit);
+  
+  // Si el usuario cancela, no hacemos nada
+  if (newText === null) {
+    currentlyEditingElement = null;
+    return;
+  }
+  
+  // Si el texto está vacío o es igual al original, restauramos el elemento
+  if (!newText.trim() || newText === originalText) {
+    el.classList.remove("text-edit-extension");
+    el.removeAttribute("data-custom-text");
+    removeSelectorFromStorage(selector, "editText");
+  } else {
+    // Limpiar clases previas que puedan interferir
+    if (el.classList.contains("blur-extension")) {
+      el.classList.remove("blur-extension");
+      removeSelectorFromStorage(selector, "blur");
+    }
+    if (el.classList.contains("delete-extension")) {
+      el.classList.remove("delete-extension");
+      removeSelectorFromStorage(selector, "delete");
+    }
+    
+    // Aplicar el nuevo texto
+    el.classList.add("text-edit-extension");
+    el.setAttribute("data-custom-text", newText);
+    
+    // Guardar en storage
+    addSelectorToStorage(selector, "editText", newText);
+  }
+  
+  currentlyEditingElement = null;
 }
 
 /**
@@ -347,7 +487,8 @@ function getCssPath(el) {
     cls !== "hover-highlight" && 
     cls !== "blur-extension" && 
     cls !== "delete-extension" &&
-    cls !== "delete-mode");
+    cls !== "delete-mode" &&
+    cls !== "edit-text-mode");
   
   if (stableClasses.length > 0) {
     // Buscamos si alguna es única en el documento
@@ -386,8 +527,9 @@ function getCssPath(el) {
 }
 
 /** Añade un selector al almacenamiento (dominio actual). */
-function addSelectorToStorage(selector, type = "blur") {
-  const storageKey = type === "delete" ? "deleteSelectors" : "blurSelectors";
+function addSelectorToStorage(selector, type = "blur", customText = "") {
+  const storageKey = type === "delete" ? "deleteSelectors" : 
+                    (type === "editText" ? "editTextSelectors" : "blurSelectors");
   
   chrome.storage.local.get(storageKey, data => {
     const store = data[storageKey] || {};
@@ -396,8 +538,12 @@ function addSelectorToStorage(selector, type = "blur") {
       store[domain] = [];
     }
     
+    // Obtener el elemento y su texto original
+    const element = document.querySelector(selector);
+    const originalText = element ? element.getAttribute("data-original-text") || element.textContent.trim() : "";
+    
     // Verificar si el selector ya existe para evitar duplicados
-    const exists = store[domain].some(item => {
+    const existsIndex = store[domain].findIndex(item => {
       if (typeof item === "string") {
         return item === selector;
       } else {
@@ -405,19 +551,40 @@ function addSelectorToStorage(selector, type = "blur") {
       }
     });
     
-    if (!exists) {
-      store[domain].push({ selector, name: `Nuevo ${type === "delete" ? "borrado" : "blur"}` });
-      
-      chrome.storage.local.set({ [storageKey]: store }, () => {
-        // Notificar al popup para actualizar la UI
-        chrome.runtime.sendMessage({
-          action: "selectorAdded",
-          domain: domain,
-          selector: selector,
-          type: type
+    if (existsIndex === -1) {
+      // No existe, lo añadimos
+      if (type === "editText") {
+        store[domain].push({ 
+          selector, 
+          name: `Nuevo texto editado`, 
+          customText: customText,
+          originalText: originalText
         });
-      });
+      } else {
+        store[domain].push({ 
+          selector, 
+          name: `Nuevo ${type === "delete" ? "borrado" : "blur"}` 
+        });
+      }
+    } else {
+      // Existe, actualizamos el customText si es modo edición
+      if (type === "editText") {
+        store[domain][existsIndex].customText = customText;
+        store[domain][existsIndex].originalText = originalText;
+      }
     }
+    
+    chrome.storage.local.set({ [storageKey]: store }, () => {
+      // Notificar al popup para actualizar la UI
+      chrome.runtime.sendMessage({
+        action: "selectorAdded",
+        domain: domain,
+        selector: selector,
+        type: type,
+        customText: customText,
+        originalText: originalText
+      });
+    });
   });
 }
 
@@ -425,7 +592,8 @@ function addSelectorToStorage(selector, type = "blur") {
  * Quita un selector del almacenamiento (dominio actual).
  */
 function removeSelectorFromStorage(selector, type = "blur") {
-  const storageKey = type === "delete" ? "deleteSelectors" : "blurSelectors";
+  const storageKey = type === "delete" ? "deleteSelectors" : 
+                    (type === "editText" ? "editTextSelectors" : "blurSelectors");
   
   chrome.storage.local.get(storageKey, data => {
     const store = data[storageKey] || {};
@@ -502,24 +670,36 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             return { success: true };
             
           case "toggleEditMode":
-            if (isActive && msg.enable) {
+            if (isActive) {
               if (msg.deleteMode !== undefined) {
                 deleteMode = msg.deleteMode;
               }
-              enableSelectionMode();
-            } else {
-              disableSelectionMode();
+              if (msg.editTextMode !== undefined) {
+                editTextMode = msg.editTextMode;
+              }
+              // Si enable es true, activamos el modo edición
+              if (msg.enable) {
+                enableSelectionMode();
+              } else {
+                disableSelectionMode();
+              }
             }
             return { success: true };
             
           case "changeMode":
           case "changeDeleteMode":
-            deleteMode = msg.deleteMode;
+            deleteMode = msg.deleteMode ?? false;
+            editTextMode = msg.editTextMode ?? false;
             document.querySelectorAll(".hover-highlight").forEach(el => {
               if (deleteMode) {
                 el.classList.add("delete-mode");
+                el.classList.remove("edit-text-mode");
+              } else if (editTextMode) {
+                el.classList.add("edit-text-mode");
+                el.classList.remove("delete-mode");
               } else {
                 el.classList.remove("delete-mode");
+                el.classList.remove("edit-text-mode");
               }
             });
             return { success: true };
@@ -572,6 +752,20 @@ function turnOffExtension() {
     el.classList.remove("delete-extension");
   });
   
+  document.querySelectorAll(".text-edit-extension").forEach(el => {
+    el.classList.remove("text-edit-extension");
+    // Eliminar los overlays
+    const overlay = el.querySelector('.text-edit-overlay');
+    if (overlay) {
+      overlay.remove();
+    }
+  });
+  
+  // Eliminar todos los overlays restantes por si acaso
+  document.querySelectorAll(".text-edit-overlay").forEach(el => {
+    el.remove();
+  });
+  
   const styleEl = document.getElementById("blur-style-extension");
   if (styleEl) styleEl.remove();
 
@@ -604,10 +798,11 @@ function reApplyModifications() {
         enableSelectionMode();
       }
       
-      // Verificamos el modo actual (blur o delete)
-      chrome.storage.local.get("deleteMode", deleteData => {
-        deleteMode = deleteData.deleteMode ?? false;
-        console.log("Modo edición reactivado: deleteMode =", deleteMode);
+      // Verificamos los modos actuales
+      chrome.storage.local.get(["deleteMode", "editTextMode"], modeData => {
+        deleteMode = modeData.deleteMode ?? false;
+        editTextMode = modeData.editTextMode ?? false;
+        console.log("Modo edición reactivado: deleteMode =", deleteMode, ", editTextMode =", editTextMode);
       });
     } else {
       // Desactivamos el modo si está activo
@@ -622,12 +817,13 @@ function reApplyModifications() {
 }
 
 /**
- * También reaccionamos a cambios en el almacenamiento (extensionActive, editMode, deleteMode):
+ * También reaccionamos a cambios en el almacenamiento (extensionActive, editMode, deleteMode, editTextMode):
  *  - Si se activa la extensión => aplicar modificaciones y observer
  *  - Si se desactiva => turnOffExtension()
  *  - Si se activa editMode => enableSelectionMode()
  *  - Si se desactiva => disableSelectionMode()
  *  - Si cambia deleteMode => actualizar deleteMode
+ *  - Si cambia editTextMode => actualizar editTextMode
  */
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
@@ -654,23 +850,29 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (changes.deleteMode) {
     deleteMode = changes.deleteMode.newValue;
   }
+
+  if (changes.editTextMode) {
+    editTextMode = changes.editTextMode.newValue;
+  }
 });
 
 /**
- * Al cargar, leemos extensionActive, editMode y deleteMode para aplicarlos
+ * Al cargar, leemos extensionActive, editMode, deleteMode y editTextMode para aplicarlos
  * sin necesidad de refrescar la página.
  * También verificamos si hay sugerencias predefinidas para este dominio.
  */
-chrome.storage.local.get(["extensionActive", "editMode", "deleteMode", "blurSelectors", "deleteSelectors"], data => {
+chrome.storage.local.get(["extensionActive", "editMode", "deleteMode", "editTextMode", "blurSelectors", "deleteSelectors", "editTextSelectors"], data => {
   const isActive = data.extensionActive ?? false;
   const isEditing = data.editMode ?? false;
   deleteMode = data.deleteMode ?? false;
+  editTextMode = data.editTextMode ?? false;
   const domain = window.location.hostname;
   
   console.log("Estado inicial:", {
     isActive,
     isEditing,
     deleteMode,
+    editTextMode,
     domain: window.location.hostname
   });
   

@@ -131,12 +131,84 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   }
 
-  // Función segura para actualizar personajes
+  // Función para actualizar la visualización de los personajes de forma segura
+  function updateCharacters() {
+    console.log("Actualizando personajes...");
+    
+    // Verificar si los elementos existen antes de intentar manipularlos
+    const blurCharacterImg = document.getElementById("blurCharacterImage");
+    const deleteCharacterImg = document.getElementById("deleteCharacterImage");
+    const editTextCharacterImg = document.getElementById("editTextCharacterImage");
+    const blurCharacter = document.querySelector(".blur-character");
+    const deleteCharacter = document.querySelector(".delete-character");
+    const editTextCharacter = document.querySelector(".edit-text-character");
+    
+    // Si no existen los elementos, simplemente salimos de la función sin error
+    if ((!blurCharacterImg && !deleteCharacterImg && !editTextCharacterImg) && 
+        (!blurCharacter && !deleteCharacter && !editTextCharacter)) {
+      console.log("No se encontraron elementos de personajes en el DOM - omitiendo actualización");
+      return;
+    }
+    
+    // Actualizar los personajes según el estado actual
+    chrome.storage.local.get(["extensionActive", "editMode", "deleteMode", "editTextMode"], data => {
+      const isActive = data.extensionActive ?? false;
+      const isEditMode = data.editMode ?? false;
+      const isDeleteMode = data.deleteMode ?? false;
+      const isEditTextMode = data.editTextMode ?? false;
+      
+      // Determinar qué personaje debe estar activo
+      let activeCharacter = "none";
+      if (isActive) {
+        if (isDeleteMode) {
+          activeCharacter = "delete";
+        } else if (isEditTextMode) {
+          activeCharacter = "editText";
+        } else {
+          activeCharacter = "blur";
+        }
+      }
+      
+      // Actualizar imágenes de personajes si existen
+      if (blurCharacterImg) {
+        blurCharacterImg.classList.toggle("active", activeCharacter === "blur");
+        blurCharacterImg.classList.toggle("inactive", activeCharacter !== "blur");
+      }
+      
+      if (deleteCharacterImg) {
+        deleteCharacterImg.classList.toggle("active", activeCharacter === "delete");
+        deleteCharacterImg.classList.toggle("inactive", activeCharacter !== "delete");
+      }
+      
+      if (editTextCharacterImg) {
+        editTextCharacterImg.classList.toggle("active", activeCharacter === "editText");
+        editTextCharacterImg.classList.toggle("inactive", activeCharacter !== "editText");
+      }
+      
+      // Actualizar contenedores de personajes si existen
+      if (blurCharacter) {
+        blurCharacter.classList.toggle("active", activeCharacter === "blur");
+        blurCharacter.classList.toggle("inactive", activeCharacter !== "blur");
+      }
+      
+      if (deleteCharacter) {
+        deleteCharacter.classList.toggle("active", activeCharacter === "delete");
+        deleteCharacter.classList.toggle("inactive", activeCharacter !== "delete");
+      }
+      
+      if (editTextCharacter) {
+        editTextCharacter.classList.toggle("active", activeCharacter === "editText");
+        editTextCharacter.classList.toggle("inactive", activeCharacter !== "editText");
+      }
+    });
+  }
+  
+  // Función segura para actualizar personajes que no lanza errores
   function safeUpdateCharacters() {
-    if (hasCharacterElements()) {
+    try {
       updateCharacters();
-    } else {
-      console.log("No hay elementos de personajes para actualizar");
+    } catch (error) {
+      console.warn("Error no crítico al actualizar personajes:", error);
     }
   }
 
@@ -162,35 +234,36 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
           const domain = new URL(tabs[0].url).hostname;
           
-          chrome.storage.local.get(["extensionActive", "blurSelectors", "deleteSelectors"], data => {
+          chrome.storage.local.get(["extensionActive", "blurSelectors", "deleteSelectors", "editTextSelectors"], data => {
             const isActive = data.extensionActive ?? false;
             const disabledStateImage = document.getElementById("disabledStateImage");
+            const disabledEditStateImage = document.getElementById("disabledEditStateImage");
             const blurStateImage = document.getElementById("blurStateImage");
             const deleteStateImage = document.getElementById("deleteStateImage");
+            const editTextStateImage = document.getElementById("editTextStateImage");
             
             // Verificar si existen los elementos
-            if (!disabledStateImage || !blurStateImage || !deleteStateImage) {
+            if (!disabledStateImage || !blurStateImage || !deleteStateImage || !editTextStateImage) {
               console.error("No se encontraron todos los elementos de estado en el DOM");
               return;
             }
             
             // Primero ocultamos todos los iconos
             disabledStateImage.style.display = "none";
+            if (disabledEditStateImage) disabledEditStateImage.style.display = "none";
             blurStateImage.style.display = "none";
             deleteStateImage.style.display = "none";
+            editTextStateImage.style.display = "none";
             
             // Hacemos las imágenes de estado más grandes
             blurStateImage.style.width = "100px";
             blurStateImage.style.height = "100px";
             deleteStateImage.style.width = "100px";
             deleteStateImage.style.height = "100px";
+            editTextStateImage.style.width = "100px";
+            editTextStateImage.style.height = "100px";
             disabledStateImage.style.width = "100px";
             disabledStateImage.style.height = "100px";
-            
-            // Asegurar que los iconos tengan un z-index alto
-            blurStateImage.style.zIndex = "1000";
-            deleteStateImage.style.zIndex = "1000";
-            disabledStateImage.style.zIndex = "1000";
             
             // Verificar si hay elementos configurados
             const hasBlurElements = data.blurSelectors && 
@@ -201,71 +274,54 @@ document.addEventListener("DOMContentLoaded", () => {
                                    data.deleteSelectors[domain] && 
                                    data.deleteSelectors[domain].length > 0;
             
+            const hasEditTextElements = data.editTextSelectors && 
+                                     data.editTextSelectors[domain] && 
+                                     data.editTextSelectors[domain].length > 0;
+            
             // Si la extensión está desactivada
             if (!isActive) {
-              // Crear un segundo disabledStateImage si no existe y se necesita
-              let secondDisabledImage = document.getElementById("secondDisabledStateImage");
-              if (!secondDisabledImage && hasBlurElements && hasDeleteElements) {
-                secondDisabledImage = document.createElement("img");
-                secondDisabledImage.id = "secondDisabledStateImage";
-                secondDisabledImage.src = "desactivado.png";
-                secondDisabledImage.alt = "Desactivado 2";
-                secondDisabledImage.className = "state-image";
-                secondDisabledImage.style.width = "100px";
-                secondDisabledImage.style.height = "100px";
-                secondDisabledImage.style.zIndex = "1000";
-                
-                // Insertar después del primer disabledStateImage
-                disabledStateImage.parentNode.insertBefore(secondDisabledImage, disabledStateImage.nextSibling);
-              } else if (secondDisabledImage && (!hasBlurElements || !hasDeleteElements)) {
-                // Eliminar si ya no se necesita
-                secondDisabledImage.remove();
+              // Mostrar las imágenes de desactivado según los elementos que haya
+              if (hasBlurElements) {
+                disabledStateImage.style.display = "block";
               }
               
-              // Si hay elementos tanto de blur como de borrado configurados, mostrar dos iconos de desactivado
-              if (hasBlurElements && hasDeleteElements) {
-                disabledStateImage.style.display = "block";
-                if (secondDisabledImage) secondDisabledImage.style.display = "block";
-              } 
-              // Si solo hay elementos de un tipo, mostrar solo un icono de desactivado
-              else if (hasBlurElements || hasDeleteElements) {
-                disabledStateImage.style.display = "block";
-                if (secondDisabledImage) secondDisabledImage.style.display = "none";
+              if (hasDeleteElements) {
+                deleteStateImage.src = "desactivado.png";
+                deleteStateImage.style.display = "block";
               }
-              // Si no hay elementos configurados, mostrar un icono de desactivado
-              else {
+              
+              if (hasEditTextElements && disabledEditStateImage) {
+                disabledEditStateImage.style.display = "block";
+              }
+              
+              // Si no hay elementos, mostrar la imagen de desactivado genérica
+              if (!hasBlurElements && !hasDeleteElements && !hasEditTextElements) {
                 disabledStateImage.style.display = "block";
-                if (secondDisabledImage) secondDisabledImage.style.display = "none";
               }
               
               return;
             }
             
-            // Asegurarse de eliminar la segunda imagen de desactivado si existe y la extensión está activa
-            const secondDisabledImage = document.getElementById("secondDisabledStateImage");
-            if (secondDisabledImage) {
-              secondDisabledImage.style.display = "none";
-            }
-            
-            // Si está activada, verificamos qué elementos hay en la página y mostramos los iconos correspondientes
+            // Si la extensión está activa, mostrar los iconos correspondientes
             if (hasBlurElements) {
               blurStateImage.style.display = "block";
-              blurStateImage.style.zIndex = "10000"; // Aseguramos que esté por encima
+              blurStateImage.src = "blur.png";
             }
             
             if (hasDeleteElements) {
               deleteStateImage.style.display = "block";
-              deleteStateImage.style.zIndex = "10000"; // Aseguramos que esté por encima
+              deleteStateImage.src = "borrar.png";
             }
             
-            // Si no hay ningún elemento pero la extensión está activa, mostramos el icono de blur por defecto
-            if (!hasBlurElements && !hasDeleteElements) {
+            if (hasEditTextElements) {
+              editTextStateImage.style.display = "block";
+              editTextStateImage.src = "editar.png";
+            }
+            
+            // Si no hay ningún elemento pero la extensión está activa
+            if (!hasBlurElements && !hasDeleteElements && !hasEditTextElements) {
               blurStateImage.style.display = "block";
-              blurStateImage.style.zIndex = "10000"; // Aseguramos que esté por encima
             }
-            
-            // Usar la función segura
-            safeUpdateCharacters();
           });
         } catch (error) {
           console.error("Error al actualizar iconos de estado:", error);
@@ -414,61 +470,83 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Actualizar toggleEditMode para usar la nueva función
+  // Actualizar toggleEditMode para activar automáticamente la extensión si está desactivada
   function toggleEditMode() {
-    const isOn = toggleEdit.checked;
-    
-    if (isOn) {
-      // Si activamos el toggle, asegurarse que la extensión también se active
-      chrome.storage.local.set({ 
-        extensionActive: true,  // Activar extensión automáticamente
-        editMode: true          // Activar modo edición
-      }, async () => {
-        // Actualizar UI completa
+    chrome.storage.local.get(["extensionActive", "editMode", "deleteMode", "editTextMode"], data => {
+      const isActive = data.extensionActive ?? false;
+      let isEditing = data.editMode ?? false;
+      const isDeleteMode = data.deleteMode ?? false;
+      const isEditTextMode = data.editTextMode ?? false;
+      
+      // Si la extensión no está activa, la activamos automáticamente
+      if (!isActive) {
+        // Activar la extensión primero
+        chrome.storage.local.set({ extensionActive: true }, () => {
+          // Luego activar el modo edición
+          chrome.storage.local.set({ editMode: true }, () => {
         refreshExtensionToggleUI();
+            modeSelector.style.display = "grid";
         refreshStateIcons();
-        modeSelector.style.display = "flex";
-        
-        // Añadimos los iconos de modo
-        createModeIcons();
-        
-        // Actualizamos la visibilidad de los iconos según el modo activo
-        chrome.storage.local.get("deleteMode", async data => {
-          const isDeleteMode = data.deleteMode ?? false;
-          const modeBlurIcon = document.getElementById("modeBlurIcon");
-          const modeDeleteIcon = document.getElementById("modeDeleteIcon");
-          
-          if (modeBlurIcon) modeBlurIcon.style.display = !isDeleteMode ? "block" : "none";
-          if (modeDeleteIcon) modeDeleteIcon.style.display = isDeleteMode ? "block" : "none";
-          
-          try {
-            // Primero activar la extensión
-            await sendMessageToContentScript({
-              action: "toggleExtension",
-              enable: true
+            
+            // Enviar mensaje al content script para activar la extensión y el modo edición
+            chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+              if (tabs && tabs.length > 0) {
+                // Primero activar la extensión
+                chrome.tabs.sendMessage(tabs[0].id, {
+                  action: "toggleExtension",
+                  enable: true
+                }, () => {
+                  // Luego activar el modo edición
+                  chrome.tabs.sendMessage(tabs[0].id, {
+                    action: "toggleEditMode",
+                    enable: true,
+                    deleteMode: isDeleteMode,
+                    editTextMode: isEditTextMode
+                  });
+                });
+              }
             });
             
-            // Después activar el modo edición
+            // Añadir iconos de modo a la UI
+        createModeIcons();
+        
+            showNotification("🎯 Extensión y modo selección activados");
+          });
+        });
+        return;
+      }
+      
+      // Cambiar el modo edición
+      isEditing = !isEditing;
+      
+      if (isEditing) {
+        // Si activamos el toggle, activamos el modo edición
+        chrome.storage.local.set({ editMode: true }, async () => {
+          modeSelector.style.display = "grid";
+          refreshStateIcons();
+          
+          // Enviar mensaje al content script para activar modo edición
+          try {
             await sendMessageToContentScript({
               action: "toggleEditMode",
               enable: true,
-              deleteMode: isDeleteMode
+              deleteMode: isDeleteMode,
+              editTextMode: isEditTextMode
             });
             
-            // Obtener el dominio actual y reconstruir la UI
+            // También obtener el dominio actual y reconstruir la UI
             chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
               if (tabs && tabs.length > 0) {
                 const domain = new URL(tabs[0].url).hostname;
                 buildDomainUI(domain);
-                
-                // Forzar reAplicación
-                setTimeout(reApplyInTab, 300);
               }
             });
           } catch (error) {
             console.error("Error al activar modo edición:", error);
           }
-        });
+          
+          // Añadir iconos de modo a la UI
+          createModeIcons();
         
         showNotification("🎯 Modo selección activado");
       });
@@ -498,64 +576,39 @@ document.addEventListener("DOMContentLoaded", () => {
         showNotification("📌 Modo selección desactivado");
       });
     }
+    });
   }
   
   // Actualizar switchModes para usar la nueva función
-  const switchModes = (isDeleteMode) => {
-    // Guardar el modo
+  const switchModes = (isDeleteMode, isEditTextMode = false) => {
     chrome.storage.local.set({
-      deleteMode: isDeleteMode
+      deleteMode: isDeleteMode,
+      editTextMode: isEditTextMode
     }, () => {
-      // Actualizamos el mensaje en el selector
-      const modeLabel = document.getElementById("currentModeLabel");
-      if (modeLabel) {
-        modeLabel.textContent = isDeleteMode ? "Modo Borrar" : "Modo Blur";
+      if (chrome.runtime.lastError) {
+        console.error("Error al cambiar modo:", chrome.runtime.lastError);
+        return;
       }
       
-      // Actualizar clases en los botones
-      modeOptions.forEach(opt => {
-        if (opt.dataset.mode === (isDeleteMode ? 'delete' : 'blur')) {
-          opt.classList.add('active');
-        } else {
-          opt.classList.remove('active');
+      // Luego notificamos al content script del cambio
+      chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+        if (tabs[0]) {
+          chrome.tabs.sendMessage(tabs[0].id, {
+            action: "changeMode",
+            deleteMode: isDeleteMode,
+            editTextMode: isEditTextMode
+          }, response => {
+            if (chrome.runtime.lastError) {
+              console.log("Content script no disponible o error:", chrome.runtime.lastError);
+              return;
+            }
+            
+            if (response && response.success) {
+              console.log("Modo cambiado exitosamente");
+              refreshStateIcons();
+            }
+          });
         }
-      });
-      
-      // Eliminar iconos actuales
-      const existingBlurIcon = document.getElementById("modeBlurIcon");
-      const existingDeleteIcon = document.getElementById("modeDeleteIcon");
-      
-      if (existingBlurIcon) existingBlurIcon.remove();
-      if (existingDeleteIcon) existingDeleteIcon.remove();
-      
-      // Actualizar iconos de modo
-      setTimeout(() => {
-        createModeIcons();
-        
-        // Actualizar visibilidad de los iconos
-        const modeBlurIcon = document.getElementById("modeBlurIcon");
-        const modeDeleteIcon = document.getElementById("modeDeleteIcon");
-        
-        if (modeBlurIcon) {
-          modeBlurIcon.style.display = !isDeleteMode ? "block" : "none";
-          modeBlurIcon.style.backgroundColor = "transparent";
-        }
-        
-        if (modeDeleteIcon) {
-          modeDeleteIcon.style.display = isDeleteMode ? "block" : "none";
-          modeDeleteIcon.style.backgroundColor = "transparent";
-        }
-      }, 50);
-      
-      // Aplicar el cambio usando la nueva función
-      sendMessageToContentScript({
-        action: "changeDeleteMode",
-        deleteMode: isDeleteMode
-      }).then(() => {
-        // Forzar una replicación para asegurar que los cambios se aplican
-        reApplyInTab();
-      }).catch(error => {
-        console.error("Error al cambiar modo:", error);
       });
     });
   };
@@ -589,110 +642,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Actualizar iconos de estado en base a la configuración y elementos en la página
   function refreshStateIcons() {
-    // Primero obtenemos el dominio actual de la pestaña activa
-    chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-      if (tabs && tabs.length > 0) {
-        try {
-          const domain = new URL(tabs[0].url).hostname;
-          
-          chrome.storage.local.get(["extensionActive", "blurSelectors", "deleteSelectors"], data => {
+    chrome.storage.local.get(["extensionActive", "editMode", "deleteMode", "editTextMode"], data => {
             const isActive = data.extensionActive ?? false;
-            
-            // Verificar si hay elementos con blur en este dominio
-            const hasBlurElements = data.blurSelectors && 
-              data.blurSelectors[domain] && 
-              data.blurSelectors[domain].length > 0;
-            
-            // Verificar si hay elementos borrados en este dominio
-            const hasDeleteElements = data.deleteSelectors && 
-              data.deleteSelectors[domain] && 
-              data.deleteSelectors[domain].length > 0;
-            
-            // Actualizar visibilidad de los iconos - asegurarse que están visibles
+      const isEditMode = data.editMode ?? false;
+      const isDeleteMode = data.deleteMode ?? false;
+      const isEditTextMode = data.editTextMode ?? false;
+      
+      const disabledStateImage = document.getElementById("disabledStateImage");
             const blurStateImage = document.getElementById("blurStateImage");
             const deleteStateImage = document.getElementById("deleteStateImage");
-            const disabledStateImage = document.getElementById("disabledStateImage");
-            
-            // Verificamos que existan
-            if (!blurStateImage || !deleteStateImage || !disabledStateImage) {
-              console.error("No se encontraron todos los elementos de estado en el DOM");
-              return;
-            }
-            
-            // Primero ocultamos todos los iconos
-            if (disabledStateImage) disabledStateImage.style.display = "none";
-            if (blurStateImage) blurStateImage.style.display = "none";
-            if (deleteStateImage) deleteStateImage.style.display = "none";
-            
-            // Si la extensión está desactivada, mostramos el icono de desactivado según la configuración
-            if (!isActive) {
-              // Crear un segundo disabledStateImage si no existe y se necesita
-              let secondDisabledImage = document.getElementById("secondDisabledStateImage");
-              if (!secondDisabledImage && hasBlurElements && hasDeleteElements) {
-                secondDisabledImage = document.createElement("img");
-                secondDisabledImage.id = "secondDisabledStateImage";
-                secondDisabledImage.src = "desactivado.png";
-                secondDisabledImage.alt = "Desactivado 2";
-                secondDisabledImage.className = "state-image";
-                secondDisabledImage.style.width = "100px";
-                secondDisabledImage.style.height = "100px";
-                secondDisabledImage.style.zIndex = "1000";
-                
-                // Insertar después del primer disabledStateImage
-                disabledStateImage.parentNode.insertBefore(secondDisabledImage, disabledStateImage.nextSibling);
-              } else if (secondDisabledImage && (!hasBlurElements || !hasDeleteElements)) {
-                // Eliminar si ya no se necesita
-                secondDisabledImage.remove();
-              }
-              
-              // Si hay elementos tanto de blur como de borrado configurados, mostrar dos iconos de desactivado
-              if (hasBlurElements && hasDeleteElements) {
-                disabledStateImage.style.display = "block";
-                if (secondDisabledImage) secondDisabledImage.style.display = "block";
-              } 
-              // Si solo hay elementos de un tipo, mostrar solo un icono de desactivado
-              else if (hasBlurElements || hasDeleteElements) {
-                disabledStateImage.style.display = "block";
-                if (secondDisabledImage) secondDisabledImage.style.display = "none";
-              }
-              // Si no hay elementos configurados, mostrar un icono de desactivado
-              else {
-                disabledStateImage.style.display = "block";
-                if (secondDisabledImage) secondDisabledImage.style.display = "none";
-              }
-              
-              return;
-            }
-            
-            // Asegurarse de eliminar la segunda imagen de desactivado si existe y la extensión está activa
-            const secondDisabledImage = document.getElementById("secondDisabledStateImage");
-            if (secondDisabledImage) {
-              secondDisabledImage.style.display = "none";
-            }
-            
-            // Mostrar los iconos correspondientes según el estado activo
-            if (hasBlurElements && blurStateImage) {
-              blurStateImage.style.display = "block";
-              blurStateImage.style.zIndex = "9999";
-            }
-            
-            if (hasDeleteElements && deleteStateImage) {
-              deleteStateImage.style.display = "block";
-              deleteStateImage.style.zIndex = "9999";
-            }
-            
-            // Si no hay ningún elemento pero la extensión está activa, mostramos el icono de blur por defecto
-            if (!hasBlurElements && !hasDeleteElements && blurStateImage) {
-              blurStateImage.style.display = "block";
-              blurStateImage.style.zIndex = "9999";
-            }
-            
-            // Usar la función segura
-            safeUpdateCharacters();
-          });
-        } catch (error) {
-          console.error("Error al refrescar iconos de estado:", error);
-        }
+      const editTextStateImage = document.getElementById("editTextStateImage");
+      
+      if (disabledStateImage) {
+        disabledStateImage.style.display = isActive ? "none" : "block";
+      }
+      
+      if (blurStateImage) {
+        blurStateImage.style.display = (isActive && !isDeleteMode && !isEditTextMode) ? "block" : "none";
+      }
+      
+      if (deleteStateImage) {
+        deleteStateImage.style.display = (isActive && isDeleteMode) ? "block" : "none";
+      }
+      
+      if (editTextStateImage) {
+        editTextStateImage.style.display = (isActive && isEditTextMode) ? "block" : "none";
+      }
+      
+      const modeSelector = document.getElementById("modeSelector");
+      if (modeSelector) {
+        modeSelector.style.display = isEditMode ? "grid" : "none";
       }
     });
   }
@@ -739,241 +718,203 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Construir UI del dominio actual
   function buildDomainUI(domain) {
-    chrome.storage.local.get(["blurSelectors", "deleteSelectors"], data => {
-      const blurStore = data.blurSelectors || {};
-      const deleteStore = data.deleteSelectors || {};
-      const blurItems = blurStore[domain] || [];
-      const deleteItems = deleteStore[domain] || [];
+    chrome.storage.local.get(["blurSelectors", "deleteSelectors", "editTextSelectors"], data => {
+      const domainWrapper = document.getElementById("domainWrapper");
+      if (!domainWrapper) return;
       
-      // Actualizamos los iconos según los elementos actuales
-      refreshStateIcons();
-
-      if (blurItems.length === 0 && deleteItems.length === 0) {
+      const blurSelectors = (data.blurSelectors && data.blurSelectors[domain]) || [];
+      const deleteSelectors = (data.deleteSelectors && data.deleteSelectors[domain]) || [];
+      const editTextSelectors = (data.editTextSelectors && data.editTextSelectors[domain]) || [];
+      
+      // Limpiar el contenedor
+      domainWrapper.innerHTML = "";
+      
+      if (blurSelectors.length === 0 && deleteSelectors.length === 0 && editTextSelectors.length === 0) {
+        // Si no hay selectores, mostrar mensaje de vacío
         domainWrapper.innerHTML = `
           <div class="empty-state">
-            No hay elementos modificados para <strong>${domain}</strong>
+            No hay elementos modificados en este sitio.<br>
+            Activa el modo edición y selecciona elementos de la página.
           </div>
         `;
         return;
       }
 
-      let html = "";
-      
-      // Elementos con blur
-      if (blurItems.length > 0) {
-        html += `
-          <details open>
-            <summary>Elementos con blur en ${domain} (${blurItems.length})</summary>
-            <div class="blur-items">
+      // Construir sección de blurs
+      const blurStore = data.blurSelectors?.[domain] || [];
+      if (blurStore.length > 0) {
+        const blurDetails = document.createElement("details");
+        blurDetails.innerHTML = `
+          <summary>Blur (${blurStore.length})</summary>
+          <div class="blur-items"></div>
         `;
-        blurItems.forEach((item, i) => {
-          const sel = typeof item === "string" ? item : item.selector;
-          const nm = (typeof item === "object" && item.name) ? item.name : getDefaultNameForSelector(sel);
-          const isPreset = typeof item === "object" && item.isPreset === true;
-          
-          html += `
-            <div class="blur-item ${isPreset ? 'preset-item' : ''}">
-              <span class="blur-name">${i + 1}. ${nm}</span>
-              <div class="buttons-blur">
-                <button class="rename-blur" data-domain="${domain}" data-selector="${sel}" data-type="blur">✏️</button>
-                <button class="remove-blur" data-domain="${domain}" data-selector="${sel}" data-type="blur">❌</button>
-              </div>
-            </div>
-          `;
-        });
-        html += `</div></details>`;
-      }
-      
-      // Elementos borrados
-      if (deleteItems.length > 0) {
-        html += `
-          <details open>
-            <summary>Elementos borrados en ${domain} (${deleteItems.length})</summary>
-            <div class="blur-items">
-        `;
-        deleteItems.forEach((item, i) => {
-          const sel = typeof item === "string" ? item : item.selector;
-          const nm = (typeof item === "object" && item.name) ? item.name : getDefaultNameForSelector(sel);
-          const isPreset = typeof item === "object" && item.isPreset === true;
-          
-          html += `
-            <div class="blur-item ${isPreset ? 'preset-item' : ''}">
-              <span class="blur-name">${i + 1}. ${nm}</span>
-              <div class="buttons-blur">
-                <button class="rename-blur" data-domain="${domain}" data-selector="${sel}" data-type="delete">✏️</button>
-                <button class="remove-blur" data-domain="${domain}" data-selector="${sel}" data-type="delete">❌</button>
-              </div>
-            </div>
-          `;
-        });
-        html += `</div></details>`;
-      }
-      
-      domainWrapper.innerHTML = html;
-
-      // Listeners para renombrar/eliminar
-      domainWrapper.querySelectorAll(".rename-blur").forEach(btn => {
-        btn.addEventListener("click", () => {
-          inlineRenameBlur(btn.dataset.domain, btn.dataset.selector, btn.closest(".blur-item"), btn.dataset.type);
-        });
-      });
-      
-      domainWrapper.querySelectorAll(".remove-blur").forEach(btn => {
-        btn.addEventListener("click", () => {
-          removeBlur(btn.dataset.domain, btn.dataset.selector, btn.dataset.type);
-        });
-      });
-
-      // Usar la función segura
-      safeUpdateCharacters();
-    });
-    
-    // Ahora también construimos las sugerencias
-    buildSuggestionsUI(domain);
-  }
-  
-  // Construir UI para sugerencias con animaciones
-  function buildSuggestionsUI(domain) {
-    // Verificar si PREDEFINED_BLURS está definido
-    if (typeof PREDEFINED_BLURS === 'undefined' || !PREDEFINED_BLURS) {
-      console.error("Variable PREDEFINED_BLURS no definida");
-      suggestedWrapper.innerHTML = `
-        <div class="empty-state">
-          No se pudieron cargar las sugerencias. Por favor, inténtalo de nuevo.
-        </div>
-      `;
-      return;
-    }
-    
-    // Si no tenemos sugerencias para este dominio, mostramos un mensaje
-    if (!PREDEFINED_BLURS[domain] || PREDEFINED_BLURS[domain].length === 0) {
-      suggestedWrapper.innerHTML = `
-        <div class="empty-state">
-          No hay sugerencias disponibles para <strong>${domain}</strong>
-        </div>
-      `;
-      return;
-    }
-    
-    // Obtenemos los selectores ya activos para no mostrarlos en las sugerencias
-    chrome.storage.local.get(["blurSelectors", "deleteSelectors"], data => {
-      const blurStore = data.blurSelectors || {};
-      const deleteStore = data.deleteSelectors || {};
-      
-      const activeBlurSelectors = (blurStore[domain] || []).map(item => 
-        typeof item === "string" ? item : item.selector
-      );
-      
-      const activeDeleteSelectors = (deleteStore[domain] || []).map(item => 
-        typeof item === "string" ? item : item.selector
-      );
-      
-      // Combinamos ambos conjuntos de selectores activos
-      const activeSelectors = [...activeBlurSelectors, ...activeDeleteSelectors];
-      
-      // Filtramos las sugerencias que no estén ya activas
-      const suggestions = PREDEFINED_BLURS[domain].filter(item => 
-        !activeSelectors.includes(item.selector)
-      );
-      
-      if (suggestions.length === 0) {
-        suggestedWrapper.innerHTML = `
-          <div class="empty-state">
-            Todas las sugerencias ya están activas en <strong>${domain}</strong>
-          </div>
-        `;
-        return;
-      }
-      
-      let html = `
-        <details open>
-          <summary>Sugerencias para ${domain} (${suggestions.length})</summary>
-          <div class="blur-items">
-      `;
-      
-      suggestions.forEach((item, i) => {
-        const itemType = item.type === 'delete' ? 'delete' : 'blur';
-        const typeIcon = itemType === 'delete' ? '🗑️' : '💨';
+        blurDetails.open = true;
         
-        html += `
-          <div class="blur-item preset-item ${itemType}-preset">
-            <span class="blur-name">${i + 1}. ${item.name} ${typeIcon}</span>
-            <div class="buttons-blur">
-              <button class="add-blur" data-domain="${domain}" data-selector="${item.selector}" data-name="${item.name}" data-type="${itemType}">➕</button>
+        const blurItemsContainer = blurDetails.querySelector(".blur-items");
+        blurStore.forEach(item => {
+          const selector = typeof item === "string" ? item : item.selector;
+          const name = typeof item === "string" ? getDefaultNameForSelector(selector) : item.name;
+          
+          const blurItem = document.createElement("div");
+          blurItem.className = "blur-item";
+          blurItem.innerHTML = `
+            <span class="blur-name" contenteditable="false">${name}</span>
+              <div class="buttons-blur">
+              <button class="rename-blur">✏️</button>
+              <button class="remove-blur">🗑️</button>
             </div>
+          `;
+          
+          // Manejar renombrar
+          const renameBtn = blurItem.querySelector(".rename-blur");
+          renameBtn.onclick = () => inlineRenameBlur(domain, selector, blurItem, "blur");
+          
+          // Manejar eliminar
+          const removeBtn = blurItem.querySelector(".remove-blur");
+          removeBtn.onclick = () => removeBlur(domain, selector, "blur");
+          
+          blurItemsContainer.appendChild(blurItem);
+        });
+        
+        domainWrapper.appendChild(blurDetails);
+      }
+      
+      // Construir sección de textos editados
+      const editTextStore = data.editTextSelectors?.[domain] || [];
+      if (editTextStore.length > 0) {
+        const editTextDetails = document.createElement("details");
+        editTextDetails.open = true;  // Aseguramos que esté desplegado por defecto
+        editTextDetails.innerHTML = `
+          <summary>Textos Editados (${editTextStore.length})</summary>
+        `;
+        const editTextList = document.createElement("div");
+        editTextList.className = "blur-items";
+        
+        editTextStore.forEach(item => {
+          const editTextItem = document.createElement("div");
+          editTextItem.className = "blur-item";
+          const originalText = item.originalText || "Sin texto original";
+          editTextItem.innerHTML = `
+            <div>
+              <div class="blur-name" contenteditable="false">${item.name}</div>
+              <small style="color: var(--text-light);">${originalText} -> ${item.customText}</small>
+        </div>
+            <div class="buttons-blur">
+              <button class="rename-blur" title="Renombrar">✏️</button>
+              <button class="remove-blur" title="Eliminar">🗑️</button>
+        </div>
+      `;
+          
+          // Manejar renombrar
+          const renameBtn = editTextItem.querySelector(".rename-blur");
+          renameBtn.onclick = () => inlineRenameBlur(domain, item.selector, editTextItem, "editText");
+          
+          // Manejar eliminar
+          const removeBtn = editTextItem.querySelector(".remove-blur");
+          removeBtn.onclick = () => removeBlur(domain, item.selector, "editText");
+          
+          editTextList.appendChild(editTextItem);
+        });
+        
+        editTextDetails.appendChild(editTextList);
+        domainWrapper.appendChild(editTextDetails);
+      }
+
+      // Construir sección de borrados
+      const deleteStore = data.deleteSelectors?.[domain] || [];
+      if (deleteStore.length > 0) {
+        const deleteDetails = document.createElement("details");
+        deleteDetails.innerHTML = `
+          <summary>Borrados (${deleteStore.length})</summary>
+          <div class="blur-items"></div>
+        `;
+        deleteDetails.open = true;
+        
+        const deleteItemsContainer = deleteDetails.querySelector(".blur-items");
+        deleteStore.forEach(item => {
+          const selector = typeof item === "string" ? item : item.selector;
+          const name = typeof item === "string" ? getDefaultNameForSelector(selector) : item.name;
+          
+          const deleteItem = document.createElement("div");
+          deleteItem.className = "blur-item";
+          deleteItem.innerHTML = `
+            <span class="blur-name" contenteditable="false">${name}</span>
+            <div class="buttons-blur">
+              <button class="rename-blur">✏️</button>
+              <button class="remove-blur">🗑️</button>
           </div>
         `;
-      });
-      
-      html += `</div></details>`;
-      suggestedWrapper.innerHTML = html;
-      
-      // Listeners para agregar sugerencias
-      suggestedWrapper.querySelectorAll(".add-blur").forEach(btn => {
-        btn.addEventListener("click", () => {
-          addSuggestion(btn.dataset.domain, btn.dataset.selector, btn.dataset.name);
+          
+          // Manejar renombrar
+          const renameBtn = deleteItem.querySelector(".rename-blur");
+          renameBtn.onclick = () => inlineRenameBlur(domain, selector, deleteItem, "delete");
+          
+          // Manejar eliminar
+          const removeBtn = deleteItem.querySelector(".remove-blur");
+          removeBtn.onclick = () => removeBlur(domain, selector, "delete");
+          
+          deleteItemsContainer.appendChild(deleteItem);
         });
-      });
+        
+        domainWrapper.appendChild(deleteDetails);
+      }
     });
-
-    // Usar la función segura
-    safeUpdateCharacters();
   }
   
   // Crear iconos para los modos blur y borrar
   function createModeIcons() {
-    try {
-      const blurOption = document.querySelector('.mode-option[data-mode="blur"]');
-      const deleteOption = document.querySelector('.mode-option[data-mode="delete"]');
-      
-      // Eliminar iconos existentes si los hay para evitar duplicados
-      const existingBlurIcon = document.getElementById("modeBlurIcon");
-      const existingDeleteIcon = document.getElementById("modeDeleteIcon");
-      
-      if (existingBlurIcon) existingBlurIcon.remove();
-      if (existingDeleteIcon) existingDeleteIcon.remove();
-      
-      // Crear nuevo icono para modo blur
-      if (blurOption) {
-        const modeBlurIcon = document.createElement("img");
-        modeBlurIcon.id = "modeBlurIcon";
-        modeBlurIcon.className = "mode-icon";
-        modeBlurIcon.src = "blur.png";
-        modeBlurIcon.alt = "Modo Blur";
-        modeBlurIcon.style.backgroundColor = "transparent";
-        modeBlurIcon.style.objectFit = "contain";
-        blurOption.appendChild(modeBlurIcon);
-      }
-      
-      // Crear nuevo icono para modo borrar
-      if (deleteOption) {
-        const modeDeleteIcon = document.createElement("img");
-        modeDeleteIcon.id = "modeDeleteIcon";
-        modeDeleteIcon.className = "mode-icon";
-        modeDeleteIcon.src = "borrar.png";
-        modeDeleteIcon.alt = "Modo Borrar";
-        modeDeleteIcon.style.backgroundColor = "transparent";
-        modeDeleteIcon.style.objectFit = "contain";
-        deleteOption.appendChild(modeDeleteIcon);
-      }
-      
-      // Configurar visibilidad según el modo actual
-      chrome.storage.local.get("deleteMode", data => {
-        const isDeleteMode = data.deleteMode ?? false;
-        const modeBlurIcon = document.getElementById("modeBlurIcon");
-        const modeDeleteIcon = document.getElementById("modeDeleteIcon");
+    const modeSelector = document.getElementById("modeSelector");
+    if (!modeSelector) return;
+
+    // Obtener las opciones dentro del selector de modos
+    const modeOptions = modeSelector.querySelectorAll(".mode-option");
+
+    // Verificar si ya hay listeners (para evitar duplicación)
+    if (modeOptions.length > 0 && !modeOptions[0].hasAttribute("data-has-listener")) {
+      modeOptions.forEach(option => {
+        // Marcar que tiene listener
+        option.setAttribute("data-has-listener", "true");
         
-        if (modeBlurIcon) {
-          modeBlurIcon.style.display = !isDeleteMode ? "block" : "none";
-        }
+        option.addEventListener("click", () => {
+          // Eliminar la clase 'active' de todas las opciones
+          modeOptions.forEach(opt => opt.classList.remove("active"));
+          
+          // Agregar la clase 'active' a la opción seleccionada
+          option.classList.add("active");
+          
+          // Obtener el modo de la opción
+          const mode = option.getAttribute("data-mode");
+          
+          // Cambiar al modo seleccionado
+          if (mode === "delete") {
+            switchModes(true, false);
+          } else if (mode === "editText") {
+            switchModes(false, true);
+          } else {
+            // Modo blur (default)
+            switchModes(false, false);
+          }
+        });
+      });
+    }
+
+    // Actualizar la visualización según el modo actual
+    chrome.storage.local.get(["deleteMode", "editTextMode"], data => {
+      const deleteMode = data.deleteMode || false;
+      const editTextMode = data.editTextMode || false;
+      
+      modeOptions.forEach(option => {
+        const mode = option.getAttribute("data-mode");
         
-        if (modeDeleteIcon) {
-          modeDeleteIcon.style.display = isDeleteMode ? "block" : "none";
+        if ((mode === "delete" && deleteMode) || 
+            (mode === "editText" && editTextMode) || 
+            (mode === "blur" && !deleteMode && !editTextMode)) {
+          option.classList.add("active");
+        } else {
+          option.classList.remove("active");
         }
       });
-    } catch (error) {
-      console.error("Error al crear iconos de modo:", error);
-    }
+    });
   }
 
   function addSuggestion(domain, selector, name) {
@@ -1037,127 +978,110 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Renombrado inline
   function inlineRenameBlur(domain, selector, blurItemEl, type = "blur") {
-    const nameSpan = blurItemEl.querySelector(".blur-name");
-    const originalText = nameSpan.textContent || "";
-    // Quitar "1. " del comienzo si existe
-    const splitted = originalText.split(". ");
-    splitted.shift();
-    const existingName = splitted.join(". ").trim();
-
-    nameSpan.contentEditable = "true";
-    nameSpan.focus();
-    nameSpan.textContent = existingName;
-
-    const onKeyDown = e => {
+    const nameEl = blurItemEl.querySelector(".blur-name");
+    const originalName = nameEl.textContent;
+    
+    // Hacer el elemento editable
+    nameEl.contentEditable = "true";
+    nameEl.focus();
+    
+    // Seleccionar todo el texto
+    const range = document.createRange();
+    range.selectNodeContents(nameEl);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    
+    const onKeyDown = (e) => {
       if (e.key === "Enter") {
         e.preventDefault();
-        nameSpan.blur();
-      } else if (e.key === "Escape") {
-        e.preventDefault();
-        // Restaurar el texto original
-        nameSpan.textContent = originalText;
-        // Quitar listeners
-        nameSpan.removeEventListener("keydown", onKeyDown);
-        nameSpan.removeEventListener("blur", onBlur);
-        nameSpan.contentEditable = "false";
+        nameEl.blur();
+      }
+      if (e.key === "Escape") {
+        nameEl.textContent = originalName;
+        nameEl.blur();
       }
     };
+    
     const onBlur = () => {
-      const newName = nameSpan.textContent.trim() || existingName;
-      nameSpan.removeEventListener("keydown", onKeyDown);
-      nameSpan.removeEventListener("blur", onBlur);
-      nameSpan.contentEditable = "false";
-
+      nameEl.contentEditable = "false";
+      nameEl.removeEventListener("keydown", onKeyDown);
+      nameEl.removeEventListener("blur", onBlur);
+      
+      const newName = nameEl.textContent.trim();
+      if (newName && newName !== originalName) {
       renameBlurInStorage(domain, selector, newName, type);
+      } else {
+        nameEl.textContent = originalName;
+      }
     };
-    nameSpan.addEventListener("keydown", onKeyDown);
-    nameSpan.addEventListener("blur", onBlur);
+    
+    nameEl.addEventListener("keydown", onKeyDown);
+    nameEl.addEventListener("blur", onBlur);
   }
 
   // Reemplazar renameBlurInStorage para usar la función segura
   function renameBlurInStorage(domain, selector, newName, type = "blur") {
-    const storageKey = type === "delete" ? "deleteSelectors" : "blurSelectors";
+    const storageKey = type === "delete" ? "deleteSelectors" : 
+                      type === "editText" ? "editTextSelectors" : "blurSelectors";
     
     chrome.storage.local.get(storageKey, data => {
-      if (chrome.runtime.lastError) {
-        console.error("Error al obtener selectores:", chrome.runtime.lastError);
-        showNotification("❌ Error al renombrar: " + chrome.runtime.lastError.message);
-        return;
-      }
-      
       const store = data[storageKey] || {};
       if (!store[domain]) return;
 
-      store[domain] = store[domain].map(it => {
-        if (typeof it === "string") {
-          if (it === selector) return { selector, name: newName };
-          return it;
+      const index = store[domain].findIndex(item => {
+        if (typeof item === "string") {
+          return item === selector;
         } else {
-          if (it.selector === selector) {
-            // Preservamos isPreset si existe
-            const isPreset = it.isPreset || false;
-            return { selector, name: newName, isPreset };
-          }
-          return it;
+          return item.selector === selector;
         }
       });
       
-      chrome.storage.local.set({ [storageKey]: store }, () => {
-        if (chrome.runtime.lastError) {
-          console.error("Error al guardar selector renombrado:", chrome.runtime.lastError);
-          showNotification("❌ Error al guardar: " + chrome.runtime.lastError.message);
-          return;
+      if (index !== -1) {
+        if (typeof store[domain][index] === "string") {
+          store[domain][index] = { selector, name: newName };
+        } else {
+          store[domain][index].name = newName;
         }
         
-        showNotification(`✏️ ${type === "delete" ? "Elemento borrado" : "Blur"} renombrado`);
-        buildDomainUI(domain);
-        // Re-aplicar en la pestaña sin refrescar
-        reApplyInTab();
-      });
+        chrome.storage.local.set({ [storageKey]: store }, () => {
+          console.log(`${type} renombrado a:`, newName);
+        });
+      }
     });
-
-    // Usar la función segura
-    safeUpdateCharacters();
   }
 
   // Reemplazar removeBlur para usar la función segura
   function removeBlur(domain, selector, type = "blur") {
-    const storageKey = type === "delete" ? "deleteSelectors" : "blurSelectors";
+    const storageKey = type === "delete" ? "deleteSelectors" : 
+                      type === "editText" ? "editTextSelectors" : "blurSelectors";
     
     chrome.storage.local.get(storageKey, data => {
-      if (chrome.runtime.lastError) {
-        console.error("Error al obtener selectores para eliminar:", chrome.runtime.lastError);
-        showNotification("❌ Error al eliminar: " + chrome.runtime.lastError.message);
-        return;
-      }
-      
       const store = data[storageKey] || {};
       if (!store[domain]) return;
 
-      store[domain] = store[domain].filter(it => {
-        if (typeof it === "string") {
-          return it !== selector;
+      store[domain] = store[domain].filter(item => {
+        if (typeof item === "string") {
+          return item !== selector;
         } else {
-          return it.selector !== selector;
+          return item.selector !== selector;
         }
       });
       
       chrome.storage.local.set({ [storageKey]: store }, () => {
-        if (chrome.runtime.lastError) {
-          console.error("Error al guardar después de eliminar:", chrome.runtime.lastError);
-          showNotification("❌ Error al guardar: " + chrome.runtime.lastError.message);
-          return;
-        }
+        // Notificar al content script para que actualice la UI
+        chrome.tabs.query({active: true, currentWindow: true}, tabs => {
+          if (tabs[0]) {
+            chrome.tabs.sendMessage(tabs[0].id, {
+              action: "reApply"
+            });
+          }
+        });
         
-        showNotification(`🗑️ ${type === "delete" ? "Elemento borrado" : "Blur"} eliminado`);
+        // Actualizar la UI del popup
         buildDomainUI(domain);
-        // Re-aplicar en la pestaña sin refrescar
-        reApplyInTab();
       });
     });
-
-    // Usar la función segura
-    safeUpdateCharacters();
   }
 
   // Nombre por defecto para un selector (p.ej. "img" => "Imagen")
@@ -1257,65 +1181,148 @@ document.addEventListener("DOMContentLoaded", () => {
   function init() {
     console.log("Inicializando popup...");
     
-    // Verificamos si los elementos críticos existen en el DOM
-    const toggleEdit = document.getElementById("toggleEdit");
-    const toggleExtensionBtn = document.getElementById("toggleExtension");
-    const disabledStateImage = document.getElementById("disabledStateImage");
-    const blurStateImage = document.getElementById("blurStateImage");
-    const deleteStateImage = document.getElementById("deleteStateImage");
-    
-    if (!toggleEdit || !toggleExtensionBtn || !blurStateImage || !deleteStateImage || !disabledStateImage) {
-      console.error("Error: No se encontraron todos los elementos necesarios en el DOM");
+    // Verificar que tenemos todos los elementos necesarios
+    if (!toggleExtensionBtn || !toggleEdit || !modeSelector) {
+      console.error("Elementos críticos no encontrados en el DOM");
       return;
     }
     
-    // Inicializamos los componentes en este orden:
-    chrome.storage.local.get(["extensionActive", "editMode", "deleteMode"], data => {
-      console.log("Estado actual:", data);
-      
-      // 1. Actualizar checkbox de edición según estado actual
-      refreshEditCheckbox();
-      
-      // 2. Actualizar botón principal según estado extensionActive
-      refreshExtensionToggleUI();
-      
-      // 3. Actualizar iconos de estado 
-      updateStateIcons();
-      
-      // 4. Actualizar interfaz del dominio actual (incluye sugerencias)
+    // Verificar disponibilidad del content script
+    checkContentScriptAvailability();
+    
+    // Actualizar UI según el estado actual
+    chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+      if (tabs && tabs.length > 0) {
+        try {
+          const domain = new URL(tabs[0].url).hostname;
+          
+          // Construir UI del dominio actual (activos y sugeridos)
+          buildDomainUI(domain);
+          buildSuggestionsUI(domain);
+          
+          // También intentar actualizar personajes si los hay
+          safeUpdateCharacters();
+          
+          // Y actualizar los iconos de estado
+          refreshStateIcons();
+        } catch (e) {
+          console.error("Error al obtener dominio:", e);
+        }
+      }
+    });
+    
+    // Configurar las pestañas
+    const tabs = document.querySelectorAll('.tab');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        // Activar pestaña seleccionada y desactivar las demás
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        
+        // Mostrar contenido correspondiente
+        const tabId = tab.getAttribute('data-tab');
+        document.querySelectorAll('.tab-content').forEach(content => {
+          content.classList.toggle('active', content.id === tabId);
+        });
+        
+        // Si cambiamos a la pestaña de sugeridos, actualizar su contenido
+        if (tabId === 'suggested-blurs') {
       chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
         if (tabs && tabs.length > 0) {
           try {
           const domain = new URL(tabs[0].url).hostname;
-          console.log("Dominio actual:", domain);
+                buildSuggestionsUI(domain);
+              } catch (e) {
+                console.error("Error al obtener dominio:", e);
+              }
+            }
+          });
+        }
+      });
+    });
+
+    // Actualizar el botón de alternar extensión
+    refreshExtensionToggleUI();
+    
+    // Botones de exportar/importar
+    const exportBtn = document.getElementById('exportBlur');
+    const importBtn = document.getElementById('importBlurButton');
+    const importInput = document.getElementById('importBlur');
+    
+    if (exportBtn) {
+      exportBtn.addEventListener('click', () => {
+        chrome.storage.local.get(['blurSelectors', 'deleteSelectors', 'editTextSelectors'], data => {
+          const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
           
-          // Construir UI para dominio actual
-          buildDomainUI(domain);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `blurgy_export_${new Date().toISOString().slice(0, 10)}.json`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          
+          showNotification("💾 Exportación completada");
+        });
+      });
+    }
+    
+    if (importBtn && importInput) {
+      importBtn.addEventListener('click', () => {
+        importInput.click();
+      });
+      
+      importInput.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = JSON.parse(e.target.result);
+            
+            if (!data.blurSelectors && !data.deleteSelectors && !data.editTextSelectors) {
+              throw new Error("Formato de archivo inválido");
+            }
+            
+            chrome.storage.local.get(['blurSelectors', 'deleteSelectors', 'editTextSelectors'], currentData => {
+              // Combinar los datos importados con los actuales
+              const combined = {
+                blurSelectors: { ...currentData.blurSelectors, ...data.blurSelectors },
+                deleteSelectors: { ...currentData.deleteSelectors, ...data.deleteSelectors },
+                editTextSelectors: { ...currentData.editTextSelectors, ...data.editTextSelectors }
+              };
+              
+              chrome.storage.local.set(combined, () => {
+                showNotification("📥 Importación completada");
+                
+                // Actualizar la UI
+                chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+                  if (tabs && tabs.length > 0) {
+                    try {
+                      const domain = new URL(tabs[0].url).hostname;
+                      buildDomainUI(domain);
+                      buildSuggestionsUI(domain);
+                      
+                      // Re-aplicar modificaciones
+                      reApplyInTab();
+                    } catch (e) {
+                      console.error("Error al obtener dominio:", e);
+                    }
+                  }
+                });
+              });
+            });
           } catch (error) {
-            console.error("Error al obtener dominio de la pestaña:", error);
+            showNotification("❌ Error al importar: " + error.message);
           }
-        }
+        };
+        reader.readAsText(file);
       });
-    });
-
-    // Inicializar la gestión de los modos
-    chrome.storage.local.get("deleteMode", data => {
-      const isDeleteMode = data.deleteMode ?? false;
-      
-      // Actualizamos las clases de los botones
-      modeOptions.forEach(opt => {
-        if (opt.dataset.mode === (isDeleteMode ? 'delete' : 'blur')) {
-          opt.classList.add('active');
-        } else {
-          opt.classList.remove('active');
-        }
-      });
-      
-      // Añadimos los iconos de modo después de que la UI se ha construido
-      setTimeout(createModeIcons, 100);
-    });
-
-    // Evento para togglear la extensión
+    }
+    
+    // Toggle extensión
     toggleExtensionBtn.addEventListener("click", () => {
       chrome.storage.local.get("extensionActive", data => {
         const currentActive = data.extensionActive ?? false;
@@ -1355,9 +1362,17 @@ document.addEventListener("DOMContentLoaded", () => {
               }
             });
           }
+          
+          // Actualizar personajes e iconos
+          safeUpdateCharacters();
+          refreshStateIcons();
         });
       });
     });
+
+    // Creamos los iconos de modo y actualizamos la UI
+    createModeIcons();
+    refreshStateIcons();
   }
 
   // Función para actualizar la visualización de los personajes
@@ -1474,4 +1489,175 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   `;
   document.head.appendChild(style);
+
+  function editCustomText(domain, selector, currentText, element) {
+    const newText = prompt("Editar texto:", currentText || "");
+    
+    if (newText === null) return; // Usuario canceló
+    
+    if (!newText.trim()) {
+      // Si el texto está vacío, eliminar la personalización
+      removeBlur(domain, selector, "editText");
+      return;
+    }
+    
+    // Actualizar en storage
+    chrome.storage.local.get("editTextSelectors", data => {
+      const store = data.editTextSelectors || {};
+      if (!store[domain]) {
+        store[domain] = [];
+      }
+      
+      // Buscar la entrada existente
+      const existsIndex = store[domain].findIndex(item => {
+        if (typeof item === "object") {
+          return item.selector === selector;
+        }
+        return false;
+      });
+      
+      if (existsIndex !== -1) {
+        // Actualizar el texto personalizado
+        store[domain][existsIndex].customText = newText;
+        
+        chrome.storage.local.set({ editTextSelectors: store }, () => {
+          // Actualizar el UI
+          if (element) {
+            element.innerHTML = `<strong>${store[domain][existsIndex].name}</strong><br>"${newText.substring(0, 30)}${newText.length > 30 ? '...' : ''}"`;
+            element.title = newText;
+            element.dataset.customText = newText;
+          }
+          
+          // Re-aplicar modificaciones sin refrescar
+          reApplyInTab();
+          
+          showNotification("✅ Texto actualizado");
+        });
+      }
+    });
+  }
+
+  // Construir UI de sugerencias para el dominio actual
+  function buildSuggestionsUI(domain) {
+    const suggestedWrapper = document.getElementById("suggestedWrapper");
+    if (!suggestedWrapper) return;
+    
+    // Limpiar el contenedor
+    suggestedWrapper.innerHTML = "";
+    
+    // Comprobar si tenemos sugerencias predefinidas para este dominio
+    if (!PREDEFINED_BLURS || !PREDEFINED_BLURS[domain] || !Array.isArray(PREDEFINED_BLURS[domain])) {
+      suggestedWrapper.innerHTML = `
+        <div class="empty-state">
+          No hay sugerencias predefinidas para este sitio.<br>
+          Puedes añadir elementos manualmente en el modo edición.
+        </div>
+      `;
+      return;
+    }
+    
+    // Filtramos las sugerencias para que no aparezcan las que ya están aplicadas
+    chrome.storage.local.get(["blurSelectors", "deleteSelectors", "editTextSelectors"], data => {
+      const blurStore = (data.blurSelectors && data.blurSelectors[domain]) || [];
+      const deleteStore = (data.deleteSelectors && data.deleteSelectors[domain]) || [];
+      const editTextStore = (data.editTextSelectors && data.editTextSelectors[domain]) || [];
+      
+      // Filtrar las sugerencias que ya están aplicadas
+      const appliedSelectors = [
+        ...blurStore.map(item => typeof item === "string" ? item : item.selector),
+        ...deleteStore.map(item => typeof item === "string" ? item : item.selector),
+        ...editTextStore.map(item => typeof item === "string" ? item : item.selector)
+      ];
+      
+      const filteredSuggestions = PREDEFINED_BLURS[domain].filter(suggestion => {
+        return !appliedSelectors.includes(suggestion.selector);
+      });
+      
+      if (filteredSuggestions.length === 0) {
+        suggestedWrapper.innerHTML = `
+          <div class="empty-state">
+            Todas las sugerencias ya han sido aplicadas.<br>
+            Puedes añadir elementos manualmente en el modo edición.
+          </div>
+        `;
+        return;
+      }
+      
+      // Agrupar sugerencias por tipo
+      const blurSuggestions = filteredSuggestions.filter(s => !s.type || s.type === "blur");
+      const deleteSuggestions = filteredSuggestions.filter(s => s.type === "delete");
+      
+      // Crear el grupo para sugerencias de blur
+      if (blurSuggestions.length > 0) {
+        const blurDetails = document.createElement("details");
+        blurDetails.open = true;
+        
+        const blurSummary = document.createElement("summary");
+        blurSummary.textContent = `Blur Sugerido (${blurSuggestions.length})`;
+        blurDetails.appendChild(blurSummary);
+        
+        const blurItems = document.createElement("div");
+        blurItems.className = "blur-items";
+        
+        blurSuggestions.forEach(suggestion => {
+          const blurItem = document.createElement("div");
+          blurItem.className = "blur-item preset-item";
+          
+          const blurName = document.createElement("div");
+          blurName.className = "blur-name";
+          blurName.textContent = suggestion.name || getDefaultNameForSelector(suggestion.selector);
+          
+          const addBtn = document.createElement("button");
+          addBtn.className = "add-blur";
+          addBtn.innerHTML = "➕";
+          addBtn.title = "Aplicar sugerencia";
+          addBtn.onclick = () => addSuggestion(domain, suggestion.selector, suggestion.name || getDefaultNameForSelector(suggestion.selector));
+          
+          blurItem.appendChild(blurName);
+          blurItem.appendChild(addBtn);
+          
+          blurItems.appendChild(blurItem);
+        });
+        
+        blurDetails.appendChild(blurItems);
+        suggestedWrapper.appendChild(blurDetails);
+      }
+      
+      // Crear el grupo para sugerencias de delete
+      if (deleteSuggestions.length > 0) {
+        const deleteDetails = document.createElement("details");
+        deleteDetails.open = true;
+        
+        const deleteSummary = document.createElement("summary");
+        deleteSummary.textContent = `Borrar Sugerido (${deleteSuggestions.length})`;
+        deleteDetails.appendChild(deleteSummary);
+        
+        const deleteItems = document.createElement("div");
+        deleteItems.className = "blur-items";
+        
+        deleteSuggestions.forEach(suggestion => {
+          const deleteItem = document.createElement("div");
+          deleteItem.className = "blur-item delete-preset";
+          
+          const deleteName = document.createElement("div");
+          deleteName.className = "blur-name";
+          deleteName.textContent = suggestion.name || getDefaultNameForSelector(suggestion.selector);
+          
+          const addBtn = document.createElement("button");
+          addBtn.className = "add-blur";
+          addBtn.innerHTML = "➕";
+          addBtn.title = "Aplicar sugerencia";
+          addBtn.onclick = () => addSuggestion(domain, suggestion.selector, suggestion.name || getDefaultNameForSelector(suggestion.selector));
+          
+          deleteItem.appendChild(deleteName);
+          deleteItem.appendChild(addBtn);
+          
+          deleteItems.appendChild(deleteItem);
+        });
+        
+        deleteDetails.appendChild(deleteItems);
+        suggestedWrapper.appendChild(deleteDetails);
+      }
+    });
+  }
 });
