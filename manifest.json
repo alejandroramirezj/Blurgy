@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Blurgy",
-  "version": "1.0",
-  "description": "Difumina o elimina elementos de cualquier página web",
+  "version": "3.0",
+  "description": "Difumina, elimina y edita elementos de cualquier página web",
   "icons": {
     "16": "blur16.png",
     "48": "blur48.png",
