@@ -3,7 +3,30 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Cómo Funciona Blurgy</title>
+  
+  <!-- SEO Meta Tags -->
+  <title>Blurgy - Protección de datos en tiempo real para videollamadas y capturas</title>
+  <meta name="description" content="Protege información sensible en tiempo real durante videollamadas y capturas de pantalla. Difumina, edita o elimina datos confidenciales al instante.">
+  <meta name="keywords" content="protección datos, blur pantalla, difuminar videollamada, ocultar información sensible, privacidad reuniones online">
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://blurgy.com/">
+  <meta property="og:title" content="Blurgy - Protección de datos en tiempo real">
+  <meta property="og:description" content="Protege información sensible durante videollamadas y capturas de pantalla de forma instantánea">
+  <meta property="og:image" content="https://blurgy.com/og-image.jpg">
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://blurgy.com/">
+  <meta property="twitter:title" content="Blurgy - Protección de datos en tiempo real">
+  <meta property="twitter:description" content="Protege información sensible durante videollamadas y capturas de pantalla de forma instantánea">
+  <meta property="twitter:image" content="https://blurgy.com/twitter-image.jpg">
+
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://blurgy.com/">
+  
+  <link rel="icon" href="desactivado16.png" type="image/png">
   <style>
     /* ===== RESET / BASE ===== */
     * {
@@ -11,348 +34,1197 @@
       padding: 0;
       box-sizing: border-box;
     }
+    
     body {
-      font-family: 'Helvetica Neue', sans-serif;
-      background-color: #f0f0f5;
-      color: #333;
-      padding: 20px;
+      font-family: 'Inter', 'Helvetica Neue', sans-serif;
+      background-color: #ffffff;
+      color: #111827;
+      line-height: 1.6;
+    }
+
+    /* ===== LAYOUT ===== */
+    .section {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 80px 24px;
+    }
+    
+    .hero {
+      position: relative;
+      text-align: left;
+      padding: 140px 24px 100px;
+      background: linear-gradient(to bottom, #fafafa, #ffffff);
+      overflow: hidden;
+    }
+
+    .hero-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+    }
+
+    .hero h1 {
+      font-size: 3.5rem;
+      line-height: 1.1;
+      font-weight: 800;
+      background: linear-gradient(45deg, #1a1a1a, #404040);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 24px;
+    }
+    
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      background: #f3f4f6;
+      padding: 8px 16px;
+      border-radius: 100px;
+      margin-bottom: 24px;
+      font-weight: 500;
+      color: #374151;
+      font-size: 0.95rem;
+    }
+
+    .hero-badge span {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: #22c55e;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+
+    .hero p {
+      font-size: 1.25rem;
+      color: #4b5563;
+      margin-bottom: 32px;
+      max-width: 540px;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+
+    .hero-stats {
+      display: flex;
+      gap: 40px;
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stat-number {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #1a1a1a;
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 0.95rem;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+
+    .hero-visual {
+      position: relative;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    .demo-wrapper {
+      position: relative;
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      transform: none;
+    }
+
+    .floating-elements {
+      position: absolute;
+      inset: -20px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .floating-icon {
+      position: absolute;
+      animation: float 3s ease-in-out infinite;
+      opacity: 0.8;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-15px); }
+    }
+
+    /* ===== TYPOGRAPHY ===== */
+    h2 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+      letter-spacing: -0.02em;
+    }
+    
+    h3 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      letter-spacing: -0.01em;
+    }
+
+    /* ===== BUTTONS ===== */
+    .btn {
+      display: inline-block;
+      background: #3B82F6;
+      color: white;
+      font-weight: 600;
+      padding: 14px 32px;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: none;
+      font-size: 1rem;
+    }
+    
+    .btn:hover {
+      background: #2563EB;
+      transform: translateY(-2px);
+    }
+    
+    .btn-secondary {
+      background: #F3F4F6;
+      color: #1F2937;
+    }
+    
+    .btn-secondary:hover {
+      background: #E5E7EB;
     }
 
     /* ===== HEADER ===== */
     header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
       display: flex;
       align-items: center;
-      justify-content: center;
-      padding: 20px;
-      background: #fff;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-      margin-bottom: 20px;
-      border-radius: 12px;
-    }
-    .logo {
-      max-width: 80px;
-      cursor: pointer;
-      transition: transform 0.3s, opacity 0.3s;
-    }
-    .logo:hover {
-      transform: scale(1.1);
-      opacity: 0.8;
-    }
-    #blurgyTitle {
-      margin-left: 10px;
-      font-size: 2.5em;
-      font-weight: 600;
-    }
-
-    /* ===== CONTENEDOR PRINCIPAL ===== */
-    .container {
-      max-width: 900px;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-      padding: 30px;
-      margin: 0 auto;
-      margin-bottom: 20px;
-    }
-
-    /* ===== ICONO + TEXTO (TOGGLE) ===== */
-    .toggle-section {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      margin-top: 20px;
-    }
-    .icon-container {
-      display: flex;
-      align-items: center;
-      width: 100%;
       justify-content: space-between;
+      padding: 16px 24px;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      z-index: 100;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
     }
-    .icon-container img {
-      max-width: 60px;
+    
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .logo {
+      height: 40px;
       cursor: pointer;
-      margin-right: 10px;
-      transition: transform 0.2s;
+      transition: transform 0.3s;
     }
-    .icon-container img:hover {
+    
+    .logo:hover {
       transform: scale(1.05);
     }
-    .tooltip {
-      background: #fff;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      padding: 10px;
-      font-size: 16px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+
+    /* ===== FEATURES ===== */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 40px;
+      margin-top: 60px;
     }
-    .text-container {
-      text-align: right;
-      margin-top: 10px;
-      width: 100%;
+    
+    .feature-card {
+      background: #F9FAFB;
+      border-radius: 12px;
+      padding: 32px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      transition: all 0.3s ease;
+    }
+    
+    .feature-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .feature-icon {
+      width: 60px;
+      height: 60px;
+      margin-bottom: 20px;
     }
 
-    /* ===== TABLA DE DATOS ===== */
+    /* ===== TABLE ===== */
     .table-container {
-      flex: 2;
-      margin-top: 20px;
-      overflow-x: auto;
+      max-width: 900px;
+      margin: 0;
+      width: 100%;
+      background: #F9FAFB;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      transition: all 0.3s ease;
     }
+    
+    .table-container:hover {
+      box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+    }
+    
     table {
       width: 100%;
       border-collapse: collapse;
-      border-radius: 8px;
-      overflow: hidden;
+      transition: all 0.3s ease;
     }
+    
     table th, table td {
-      border: 1px solid #ddd;
-      padding: 12px;
+      padding: 12px 16px;
       text-align: left;
-      word-wrap: break-word;
+      border-bottom: 1px solid #E5E7EB;
     }
+    
     table th {
-      background-color: #f9f9f9;
-      font-weight: bold;
+      background-color: #F3F4F6;
+      font-weight: 600;
+      color: #4B5563;
     }
-    /* Difumina únicamente las celdas del tbody */
-    .blurred tbody td:not(:first-child) {
+    
+    /* Efectos de la tabla */
+    .blurred td:nth-child(2),
+    .blurred td:nth-child(3) {
       filter: blur(5px);
     }
-
-    /* ===== LISTA DE PROBLEMAS ===== */
-    .problem-list {
-      list-style-type: none;
-      padding: 0;
-      margin-top: 40px;
+    
+    .column-removed th:nth-child(3),
+    .column-removed td:nth-child(3) {
+      display: none;
     }
-    .problem-list li {
-      background: #f9f9f9;
+    
+    /* ===== DEMO SECTION ===== */
+    .demo-wrapper {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 40px;
+      margin-top: 60px;
+    }
+    
+    .character-section {
+      flex: 1;
+      min-width: 300px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    
+    .mode-selector {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin: 20px 0;
+    }
+    
+    .mode-option {
+      padding: 10px 16px;
       border-radius: 8px;
-      padding: 15px;
-      margin-bottom: 10px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      background: #F3F4F6;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .mode-option:hover {
+      background: #E5E7EB;
+      transform: translateY(-2px);
+    }
+    
+    .mode-option.active {
+      background: #3B82F6;
+      color: white;
+    }
+    
+    .mode-option img {
+      width: 20px;
+      height: 20px;
+    }
+    
+    .mode-option.soon {
+      cursor: pointer;
+      position: relative;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+    }
+    .mode-option.soon:hover {
+      /* background: #E5E7EB; (si se quita el efecto atenuado) */
+      /* transform: translateY(-2px); (si se quita el efecto atenuado) */
+    }
+    .mode-option.soon .mode-option-icon {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0; /* Evitar que el icono se encoja */
+    }
+    .mode-option-text-container {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      line-height: 1.3;
+    }
+    .mode-option-main-text {
+      font-weight: 500;
+    }
+    .mode-option-soon-text {
+      font-size: 0.75em;
+      color: #495057;
+      font-weight: 400;
+    }
+    .mode-option.soon::before,
+    .mode-option.soon::after {
+      content: none;
     }
 
-    /* ===== CARDS & CAROUSEL ===== */
+    .character-container {
+      position: relative;
+      margin: 30px 0;
+      transition: all 0.3s ease;
+    }
+    
+    .character {
+      width: 180px;
+      height: 180px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+    }
+    
+    .character:hover {
+      transform: scale(1.05);
+      filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.15));
+    }
+    
+    .character.active {
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.05);
+      }
+      100% {
+        transform: scale(1);
+      }
+    }
+    
+    .status-indicator {
+      margin-top: 20px;
+      font-weight: 500;
+      color: #4B5563;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      background: #F3F4F6;
+    }
+    
+    .status-indicator.active {
+      background: #EBF5FF;
+      color: #1E40AF;
+    }
+    
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #9CA3AF;
+    }
+    
+    .status-dot.active {
+      background: #3B82F6;
+    }
+    
+    .table-section {
+      flex: 1.5;
+      min-width: 350px;
+    }
+    
+    .table-overlay {
+      position: relative;
+      overflow: hidden;
+      border-radius: 12px;
+    }
+    
+    .action-hint {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 255, 255, 0.9);
+      padding: 16px 24px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      opacity: 0;
+      transition: opacity 0.3s;
+      text-align: center;
+      pointer-events: none;
+    }
+    
+    .action-hint.show {
+      opacity: 1;
+      animation: fadeInOut 3s forwards;
+    }
+    
+    @keyframes fadeInOut {
+      0% { opacity: 0; }
+      15% { opacity: 1; }
+      85% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    /* ===== CAROUSEL ===== */
+    .steps-section {
+      background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+      border-radius: 32px;
+      padding: 80px;
+      margin-top: 80px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .steps-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239fa8da' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+    
     .carousel-wrapper {
       display: flex;
-      align-items: flex-start;
-      margin-top: 20px;
       flex-wrap: wrap;
+      gap: 60px;
+      margin-top: 60px;
+      position: relative;
+    }
+    
+    .steps-nav {
+      flex: 1;
+      min-width: 300px;
+      display: flex;
+      flex-direction: column;
       gap: 20px;
     }
-    /* Tarjetas (cards) con estilos unificados */
-    .card {
-      background: #f9f9f9;
-      border-radius: 8px;
-      padding: 15px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-      text-align: center;
-      width: 200px;
-      margin-bottom: 20px;
-      transition: transform 0.3s, box-shadow 0.3s;
+    
+    .step-card {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 16px;
+      padding: 24px;
       cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 2px solid transparent;
+      position: relative;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     }
-    /* Efecto hover para todas las tarjetas */
-    .card:hover {
-      transform: scale(1.05);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    
+    .step-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 16px;
+      padding: 2px;
+      background: linear-gradient(45deg, #3b82f6, #60a5fa);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      opacity: 0;
+      transition: opacity 0.4s ease;
     }
-    /* Tarjeta seleccionada */
-    .card.selected {
-      border: 2px solid #007aff;
+    
+    .step-card:hover {
+      transform: translateX(8px);
     }
-    .card.selected h4 {
-      color: #007aff !important;
+    
+    .step-card.selected {
+      border-color: transparent;
     }
-    .card h4 {
-      margin: 0;
-      color: #999;
-    }
-    .card p {
-      margin-top: 5px;
-      font-size: 12px;
-      color: #666;
+    
+    .step-card.selected::before {
+      opacity: 1;
     }
 
-    /* Carousel */
+    .step-card h4 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      background: linear-gradient(45deg, #1e40af, #3b82f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      opacity: 0.9;
+      transition: opacity 0.3s ease;
+    }
+    
+    .step-card.selected h4 {
+      opacity: 1;
+    }
+    
+    .step-card p {
+      font-size: 0.95rem;
+      color: #6B7280;
+      margin-bottom: 0;
+    }
+    
     .carousel {
       flex: 2;
       min-width: 300px;
+      position: relative;
     }
+    
     .carousel-item {
       display: none;
-      text-align: center;
-      transition: opacity 0.5s;
-      width: 100%;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      transform: scale(0.95);
+      opacity: 0;
     }
+    
     .carousel-item.active {
       display: block;
+      animation: carouselFadeIn 0.5s forwards;
     }
+    
     .carousel-item img {
-      max-width: 100%;
-      border-radius: 8px;
-      transition: opacity 0.5s;
+      width: 100%;
+      height: auto;
+      border-radius: 16px;
+      transform: scale(1);
+      transition: transform 0.5s ease;
+    }
+    
+    .carousel-item:hover img {
+      transform: scale(1.02);
+    }
+    
+    @keyframes carouselFadeIn {
+      from {
+        opacity: 0;
+        transform: scale(0.95) translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
     }
 
-    /* ===== PRIVACIDAD & FOOTER ===== */
-    .privacy-policy {
-      margin-top: 50px;
-      padding: 15px;
-      background: #f7f7f8;
-      border-radius: 8px;
-    }
-    .privacy-policy a {
-      color: #007aff;
-      text-decoration: none;
-    }
-    footer {
+    /* ===== PROBLEMS ===== */
+    .problems-section {
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      border-radius: 24px;
+      padding: 60px 24px;
+      margin-top: 80px;
       text-align: center;
-      margin: 20px 0;
+    }
+    
+    .problems-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      margin-top: 40px;
+      padding: 20px;
+    }
+    
+    .problem-card {
+      background: white;
+      border-radius: 20px;
+      padding: 32px 24px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      transition: all 0.3s ease;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .problem-card:hover {
+      transform: translateY(-5px) rotate(1deg);
+      box-shadow: 0 12px 20px rgba(0, 0, 0, 0.1);
+    }
+    
+    .problem-icon {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      margin: 0 auto 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .emoji-combo {
+      font-size: 3.5rem;
+      filter: saturate(1.2);
+      transform-origin: center;
+      animation: floating 3s ease-in-out infinite;
+    }
+    
+    .emoji-secondary {
+      position: absolute;
+      font-size: 2rem;
+      bottom: -5px;
+      right: -5px;
+      transform: rotate(-15deg);
+      filter: saturate(1.2);
+      animation: bounce 2s ease-in-out infinite;
+    }
+    
+    .problem-card h3 {
+      color: #0f172a;
+      font-size: 1.5rem;
+      margin-bottom: 12px;
+      font-weight: 700;
+    }
+    
+    .problem-card p {
+      color: #64748b;
+      font-size: 1.1rem;
+      line-height: 1.6;
+      margin: 0;
+    }
+    
+    @keyframes floating {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    
+    @keyframes bounce {
+      0%, 100% { transform: rotate(-15deg) scale(1); }
+      50% { transform: rotate(-15deg) scale(1.2); }
+    }
+    
+    /* Efecto de brillo al hover */
+    .problem-card::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        45deg,
+        transparent,
+        rgba(255,255,255,0.1),
+        transparent
+      );
+      transform: rotate(45deg);
+      transition: 0.5s;
+      opacity: 0;
+    }
+    
+    .problem-card:hover::after {
+      opacity: 1;
+    }
+
+    /* ===== FOOTER ===== */
+    .footer {
+      background: #F9FAFB;
+      padding: 60px 24px;
+      margin-top: 80px;
+    }
+    
+    .footer-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 40px;
+    }
+    
+    .privacy-policy {
+      max-width: 500px;
+    }
+    
+    .privacy-policy h3 {
+      margin-bottom: 16px;
+    }
+    
+    .privacy-policy a {
+      color: #3B82F6;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    
+    .privacy-policy a:hover {
+      text-decoration: underline;
+    }
+    
+    .copyright {
+      text-align: center;
+      width: 100%;
+      margin-top: 40px;
+      color: #6B7280;
+      font-size: 0.875rem;
     }
 
     /* ===== MEDIA QUERIES ===== */
     @media (max-width: 768px) {
-      .flex-container {
-        flex-direction: column; /* Apilar columnas en pantallas pequeñas */
+      .hero-container {
+        grid-template-columns: 1fr;
+        gap: 40px;
       }
-      .left-column {
-        margin-right: 0; /* Eliminar margen en pantallas pequeñas */
-        margin-bottom: 20px; /* Espacio entre columnas */
+
+      .hero h1 {
+        font-size: 2.5rem;
       }
-      .right-column {
-        display: flex;
-        justify-content: center; /* Centrar la tabla en la columna */
-        align-items: flex-start; /* Alinear la tabla al inicio */
+
+      .hero-visual {
+        width: 100%;
+        max-width: 100%;
       }
-      .table-container {
-        width: 100%; /* Asegura que ocupe todo el ancho disponible */
-        padding: 10px; /* Ajustar espaciado interno en pantallas pequeñas */
+      
+      .section {
+        padding: 60px 20px;
       }
-      .toggle-section {
-        flex-direction: row; /* Mantener icono y texto en fila */
-        align-items: center; /* Alinear verticalmente */
+      
+      .hero {
+        padding: 100px 20px 60px;
       }
-      .icon-container {
-        margin-bottom: 10px; /* Espacio entre el icono y la tabla */
+      
+      .steps-section, .problems-section {
+        padding: 40px 20px;
+      }
+      
+      .carousel-wrapper {
+        gap: 30px;
+      }
+      
+      .step-card {
+        padding: 20px;
+      }
+      
+      .character {
+        width: 150px;
+        height: 150px;
+      }
+      
+      .problems-section {
+        padding: 40px 20px;
+      }
+      
+      .problems-grid {
+        gap: 16px;
+      }
+      
+      .problem-card {
+        padding: 24px 20px;
+      }
+      
+      .emoji-combo {
+        font-size: 3rem;
+      }
+      
+      .emoji-secondary {
+        font-size: 1.8rem;
       }
     }
 
-    /* Añadir al estilo existente */
-    .flex-container {
-        display: flex;
-        justify-content: space-between; /* Espacio entre columnas */
-        margin-top: 20px; /* Espacio entre el header y el contenido */
+    /* Estilos para el bocadillo de texto del personaje */
+    .speech-bubble {
+      position: absolute;
+      background-color: #4A90E2;
+      color: white;
+      border-radius: 8px;
+      padding: 10px 15px;
+      font-size: 0.95em;
+      font-weight: 500;
+      bottom: 190px;
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      z-index: 10;
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+      pointer-events: none;
+    }
+    .speech-bubble::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      margin-left: -8px;
+      border-width: 8px;
+      border-style: solid;
+      border-color: #4A90E2 transparent transparent transparent;
     }
 
-    .left-column {
-        flex: 1; /* Ocupa el 50% del ancho */
-        margin-right: 20px; /* Espacio entre columnas */
+    /* Ajustes al contenedor de notificaciones para que sea un panel desplegable */
+    .notifications-container {
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 380px;
+      max-height: calc(100vh - 100px); /* Evitar que se salga de la pantalla */
+      overflow-y: auto; /* Permitir scroll si hay muchas notificaciones */
+      padding-bottom: 20px; /* Espacio para el scroll */
     }
 
-    .right-column {
-        flex: 1; /* Ocupa el 50% del ancho */
-        display: flex;
-        justify-content: center; /* Centrar la tabla en la columna */
-        align-items: flex-start; /* Alinear la tabla al inicio */
+    /* Estilos para cada notificación individual */
+    .notification {
+      position: relative;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      padding: 16px;
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      opacity: 0; /* Restaurado para animación de entrada JS */
+      transform: translateX(100%); /* Restaurado para animación de entrada JS */
+      transition: all 0.3s ease; /* Para el hover y la animación de cierre si no se anula por JS */
     }
 
-    .table-container {
-        overflow-x: auto; /* Permitir desplazamiento horizontal en pantallas pequeñas */
-        width: 100%; /* Asegura que ocupe todo el ancho disponible */
-        background: #fff; /* Fondo blanco para la tabla */
-        border-radius: 8px; /* Bordes redondeados */
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Sombra para dar profundidad */
-        padding: 20px; /* Espaciado interno */
+    .notification:hover {
+      opacity: 1 !important; /* Asegurar que no sea transparente */
+    }
+
+    /* Eliminar los bordes de color específicos de tipo si no se desean */
+    .notification.slack,
+    .notification.gmail,
+    .notification.linkedin,
+    .notification.jira {
+      border-left: none;
+      background: white;
+    }
+
+    .notification-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    /* Añadir animaciones más realistas */
+    @keyframes notificationPop {
+      0% {
+        opacity: 0;
+        transform: translateX(100%) scale(0.8);
+      }
+      50% {
+        transform: translateX(-5%) scale(1.02);
+      }
+      70% {
+        transform: translateX(2%) scale(0.98);
+      }
+      100% {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+      }
+    }
+
+    /* Añadir efecto de cierre */
+    @keyframes notificationClose {
+      0% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(0.95);
+      }
+      100% {
+        opacity: 0;
+        transform: scale(0.8) translateX(100%);
+      }
+    }
+
+    /* Añadir estilo específico para Canva */
+    .notification.canva {
+      border: 1px solid rgba(0, 196, 204, 0.06);
+    }
+
+    /* Estilos para la tarjeta de característica "Próximamente" - Se mantiene como está para la sección features */
+    .feature-card.feature-soon {
+      position: relative; /* Necesario para posicionar el badge absoluto */
+      overflow: hidden; /* Para asegurar que el badge no se salga si es una cinta rotada */
+      /* Ya no se atenúa ni se desactivan los eventos de puntero */
+    }
+    .feature-card.feature-soon:hover {
+      transform: translateY(-5px); 
+      box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1); 
+    }
+    /* Eliminamos el estilo anterior de la etiqueta debajo del h3 */
+    .feature-card.feature-soon h3 .feature-soon-label {
+        display: none; /* O simplemente eliminar el span del HTML */
+    }
+    .feature-card.feature-soon h3::after { /* También eliminar si se usó antes para esto */
+        content: none;
+    }
+
+    /* Nuevo badge "Próximamente" en la esquina de la tarjeta */
+    .feature-card.feature-soon::after {
+      content: "PRÓXIMAMENTE"; /* Texto del badge */
+      position: absolute;
+      top: 15px; /* Distancia desde arriba */
+      right: -35px; /* Empujar hacia afuera para rotar correctamente */
+      transform: rotate(45deg);
+      background-color: #007bff; /* Un color azul llamativo, o el que prefieras */
+      color: white;
+      padding: 4px 40px; /* Ancho del badge (controlado por el padding horizontal) */
+      font-size: 10px;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+      text-align: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      z-index: 1;
     }
   </style>
 </head>
 <body>
   <!-- HEADER -->
   <header>
-    <img src="desactivado.png" alt="Logo de Blurgy" class="logo" id="blurgyLogo" />
-    <h1 id="blurgyTitle">Blurgy</h1>
+    <div class="nav-logo">
+      <img src="desactivado.png" alt="Logo de Blurgy" class="logo" id="blurgyLogo" />
+      <h3 id="blurgyTitle" style="margin-bottom: 0;">Blurgy</h3>
+    </div>
+    <a href="https://chromewebstore.google.com/detail/blurgy-fun-blur-manager/dcdekgdgphjhdjekbghheeceblnfkgim?hl=es&authuser=1"
+       class="btn"
+       target="_blank"
+       rel="noopener noreferrer">
+      Instalar
+    </a>
   </header>
 
-  <!-- CONTENEDOR PRINCIPAL -->
-  <div class="container">
-    <div class="flex-container">
-        <div class="left-column">
-            <h2>¡Transforma tu Navegación con Blurgy!</h2>
-            <p>Con Blurgy, oculta información sensible al instante. ¡No más preocupaciones por datos expuestos!</p>
-            <div class="toggle-section">
-                <div class="icon-container">
-                    <img src="desactivado.png" alt="Activar Difuminado" id="toggleImage">
-                    <span class="tooltip" id="tooltip" style="margin-left: 5px;">¡Quítame las gafas si no quieres que vea el texto!</span>
-                    <span id="statusText" style="margin-left: 0px;"></span>
-                </div>
-            </div>
+  <!-- Agregar después del header -->
+  <div id="notifications-container" class="notifications-container"></div>
+
+  <!-- HERO SECTION -->
+  <section class="hero">
+    <div class="hero-container">
+      <div class="hero-content">
+        <div class="hero-badge">
+          <span></span>
+          Nueva versión 2.0 disponible
         </div>
-        <div class="right-column">
+        
+        <h1>Protege tus datos en tiempo real mientras compartes pantalla</h1>
+        
+        <p>Difumina, edita o elimina información sensible al instante durante videollamadas y capturas. Sin interrupciones, sin preocupaciones.</p>
+        
+        <div class="hero-buttons">
+          <a href="https://chromewebstore.google.com/detail/blurgy-fun-blur-manager/dcdekgdgphjhdjekbghheeceblnfkgim" 
+             class="btn"
+             target="_blank" 
+             rel="noopener noreferrer">
+            Instalar gratis →
+          </a>
+        </div>
+
+        <div class="hero-stats">
+          <div class="stat-item">
+            <span class="stat-number">10K+</span>
+            <span class="stat-label">Usuarios activos</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number">4.8/5</span>
+            <span class="stat-label">Valoración Chrome Store</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-visual">
+        <div class="demo-wrapper">
+          <!-- Selector de modo -->
+          <div class="mode-selector">
+            <div class="mode-option active" data-mode="blur" data-icon="blur.png">
+              <img src="blur.png" alt="Blur" width="20" height="20" class="mode-option-icon">
+              Difuminar
+            </div>
+            <div class="mode-option" data-mode="delete" data-icon="borrar.png"> 
+              <img src="borrar.png" alt="Borrar" width="20" height="20" class="mode-option-icon">
+              Eliminar
+            </div>
+            <div class="mode-option" data-mode="edit" data-icon="editar.png">
+              <img src="editar.png" alt="Editar" width="20" height="20" class="mode-option-icon">
+              Editar
+            </div>
+          </div>
+
+          <!-- Personaje central -->
+          <div class="character-container">
+            <img src="desactivado.png" id="character" class="character" alt="Character">
+          </div>
+
+          <!-- Indicador de estado -->
+          <div class="status-indicator">
+            <span class="status-dot"></span>
+            <span id="statusText">Desactivado</span>
+          </div>
+
+          <!-- Tabla de demostración -->
+          <div class="table-overlay">
+            <div id="actionHint" class="action-hint">¡Protección activada!</div>
             <div class="table-container">
-                <table id="dataTable">
-                    <thead>
-                        <tr>
-                            <th>Fecha</th>
-                            <th>Nombre</th>
-                            <th>Email</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>01/01/2025</td>
-                            <td>FBI - Frank B. Iñigo</td>
-                            <td>fbi@example.com</td>
-                        </tr>
-                        <tr>
-                            <td>02/01/2025</td>
-                            <td>Cliente Secreto - Juanito</td>
-                            <td>cliente.secreto@example.com</td>
-                        </tr>
-                        <tr>
-                            <td>03/01/2025</td>
-                            <td>Caso Asado - Pepito</td>
-                            <td>caso.asado@example.com</td>
-                        </tr>
-                    </tbody>
-                </table>
+              <table id="demoTable">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Nombre</th>
+                    <th>Email</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>01/01/2025</td>
+                    <td id="name1">FBI - Frank B. Iñigo</td>
+                    <td id="email1">fbi@example.com</td>
+                  </tr>
+                  <tr>
+                    <td>02/01/2025</td>
+                    <td id="name2">Cliente Secreto - Juanito</td>
+                    <td id="email2">cliente.secreto@example.com</td>
+                  </tr>
+                  <tr>
+                    <td>03/01/2025</td>
+                    <td id="name3">Caso Asado - Pepito</td>
+                    <td id="email3">caso.asado@example.com</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
+          </div>
         </div>
+        
+        <div class="floating-elements">
+          <img src="blur.png" alt="" class="floating-icon" style="top: 10%; left: -10%; width: 48px;">
+          <img src="editar.png" alt="" class="floating-icon" style="top: 70%; right: -5%; width: 48px;">
+          <img src="borrar.png" alt="" class="floating-icon" style="top: 40%; right: -15%; width: 48px;">
+        </div>
+      </div>
     </div>
+  </section>
 
-    <!-- LISTA DE PROBLEMAS -->
-    <h2 style="margin-top: 40px;">¿Te identificas con alguno de estos problemas?</h2>
-    <ul class="problem-list">
-      <li>
-        <strong>Capturas eternas</strong>: Editar capturas para ocultar datos de clientes es un deporte extremo.
-      </li>
-      <li>
-        <strong>Datos de museo</strong>: Mostrar datos demo más viejos que tu abuela es un clásico.
-      </li>
-      <li>
-        <strong>Logos de otros clientes</strong>: Impiden que puedas enseñar las funcionalidades a potenciales clientes.
-      </li>
-    </ul>
+  <!-- MAIN CONTENT -->
+  <section class="section">
+    
 
-    <!-- CAROUSEL DE GIFS -->
+    <!-- FEATURES -->
+    <div style="margin-top: 100px; text-align: center;">
+      <h2>Características destacadas</h2>
+      <p style="margin: 0 auto 30px;">Descubre lo que hace a Blurgy la mejor herramienta para proteger tus datos</p>
+      
+      <div class="features">
+        <div class="feature-card">
+          <img src="blur.png" alt="Protección en tiempo real" class="feature-icon">
+          <h3>Protección en tiempo real</h3>
+          <p>Activa la protección durante videollamadas para mantener tus datos seguros mientras compartes pantalla.</p>
+        </div>
+        
+        <div class="feature-card">
+          <img src="borrar.png" alt="Icono eliminar" class="feature-icon">
+          <h3>Eliminación selectiva</h3>
+          <p>Elimina elementos completos de la pantalla que no quieras que aparezcan.</p>
+        </div>
+
+        <div class="feature-card feature-soon">
+          <img src="editar.png" alt="Icono edición" class="feature-icon">
+          <h3>Edición de texto</h3>
+          <p>Modifica el contenido de cualquier texto en la página para mostrar datos demo.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROBLEMS SECTION -->
+  <section class="problems-section">
+    <h2>¿Te suena familiar? 🤪</h2>
+    <p>Descubre cómo Blurgy acaba con estos problemas del día a día</p>
+    
+    <div class="problems-grid">
+      <div class="problem-card">
+        <div class="problem-icon">
+          <span class="emoji-combo">🏃‍♂️💨</span>
+          <span class="emoji-secondary">✂️</span>
+        </div>
+        <h3>¡Socorro, otra captura!</h3>
+        <p>Pasas más tiempo editando capturas que tu jefe en reuniones. Tranquil@, hay una solución más rápida.</p>
+      </div>
+
+      <div class="problem-card">
+        <div class="problem-icon">
+          <span class="emoji-combo">👵🦕</span>
+          <span class="emoji-secondary">⏰</span>
+        </div>
+        <h3>Datos jurásicos</h3>
+        <p>Tus datos demo son tan antiguos que hasta los dinosaurios los usaban en sus presentaciones.</p>
+      </div>
+
+      <div class="problem-card">
+        <div class="problem-icon">
+          <span class="emoji-combo">🙈🎭</span>
+          <span class="emoji-secondary">✨</span>
+        </div>
+        <h3>Logos rebeldes</h3>
+        <p>Los logos de otros clientes aparecen en tus demos como fotobombas en las fotos familiares.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEPS SECTION -->
+  <section class="steps-section">
     <h2>Descubre cómo Blurgy puede transformar tu experiencia</h2>
+    <p>Protege toda tu información sensible con diferentes modos</p>
+    
     <div class="carousel-wrapper">
       <!-- Contenedor de las tarjetas (izquierda) -->
-      <div style="flex: 1; min-width: 250px;">
-        <div class="card" id="card1" onclick="selectCard('card1','gif1')">
+      <div class="steps-nav">
+        <div class="step-card selected" id="card1" onclick="selectCard('card1','gif1')">
           <h4>Activar</h4>
-          <p>Activa la extensión para comenzar a difuminar.</p>
+          <p>Activa la extensión para comenzar a proteger tus datos.</p>
         </div>
-        <div class="card" id="card2" onclick="selectCard('card2','gif2')">
-          <h4>Seleccionar</h4>
+        <div class="step-card" id="card2" onclick="selectCard('card2','gif2')">
+          <h4>Difuminar</h4>
           <p>Selecciona los elementos que deseas difuminar.</p>
         </div>
-        <div class="card" id="card3" onclick="selectCard('card3','gif3')">
-          <h4>Editar</h4>
-          <p>Edita el nombre de tus blurs.</p>
+        <div class="step-card" id="card3" onclick="selectCard('card3','gif3')">
+          <h4>Editar texto</h4>
+          <p>Cambia el contenido de elementos para mostrar datos demo.</p>
         </div>
-        <div class="card" id="card4" onclick="selectCard('card4','gif4')">
-          <h4>Eliminar tus blurs</h4>
-          <p>Pulsa de nuevo encima del elemento blureado para eliminarlo.</p>
+        <div class="step-card" id="card4" onclick="selectCard('card4','gif4')">
+          <h4>Eliminar elementos</h4>
+          <p>Oculta completamente elementos de la página.</p>
         </div>
       </div>
 
@@ -372,31 +1244,65 @@
         </div>
       </div>
     </div>
-
-    <!-- POLÍTICA DE PRIVACIDAD -->
-    <div class="privacy-policy">
-      <h2>Política de Privacidad</h2>
-      <p>
-        Tu privacidad es importante para nosotros. Para más información, consulta nuestra
-        <a href="privacy-policy.html">Política de Privacidad</a>.
-      </p>
-    </div>
-  </div>
+  </section>
 
   <!-- FOOTER -->
-  <footer>
-    &copy; 2025 Blurgy. Todos los derechos reservados.
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="privacy-policy">
+        <h3>Política de Privacidad</h3>
+        <p>Tu privacidad es importante para nosotros. Para más información, consulta nuestra <a href="privacy-policy.html">Política de Privacidad</a>.</p>
+      </div>
+      
+      <div>
+        <h3>Contacto</h3>
+        <p>¿Tienes preguntas? Escríbenos a <a href="mailto:info@blurgy.com">info@blurgy.com</a></p>
+      </div>
+      
+      <div class="copyright">
+        &copy; 2025 Blurgy. Todos los derechos reservados.
+      </div>
+    </div>
   </footer>
 
   <script>
     // Referencias a elementos clave
     const blurgyLogo = document.getElementById('blurgyLogo');
     const blurgyTitle = document.getElementById('blurgyTitle');
-    const toggleImage = document.getElementById('toggleImage');
-    const tooltip = document.getElementById('tooltip');
-    const dataTable = document.getElementById('dataTable');
+    const character = document.getElementById('character');
+    const demoTable = document.getElementById('demoTable');
+    const statusDot = document.querySelector('.status-dot');
+    const statusText = document.getElementById('statusText');
+    const actionHint = document.getElementById('actionHint');
+    const modeOptions = document.querySelectorAll('.mode-option');
     const carouselItems = document.querySelectorAll('.carousel-item');
-
+    
+    // Datos originales y anónimos
+    const originalNames = ['FBI - Frank B. Iñigo', 'Cliente Secreto - Juanito', 'Caso Asado - Pepito'];
+    const originalEmails = ['fbi@example.com', 'cliente.secreto@example.com', 'caso.asado@example.com'];
+    const anonymousNames = ['Ana García', 'Carlos López', 'María Rodríguez'];
+    const anonymousEmails = ['usuario@ejemplo.com', 'contacto@empresa.es', 'info@dominio.com'];
+    
+    // Estado de la extensión
+    let isActive = false;
+    let currentMode = "blur";
+    
+    // Función para mostrar el mensaje de acción temporalmente
+    function showActionHint(message) {
+      actionHint.textContent = message;
+      actionHint.classList.remove('show');
+      
+      // Forzar un reflow para reiniciar la animación
+      void actionHint.offsetWidth;
+      
+      actionHint.classList.add('show');
+      
+      // Eliminar la clase después de la animación
+      setTimeout(() => {
+        actionHint.classList.remove('show');
+      }, 3000);
+    }
+    
     /* 
      * Alternar el logo cada 5 segundos (desactivado <-> activado)
      * para mostrar un efecto de ejemplo. También difuminamos el título
@@ -408,24 +1314,119 @@
       blurgyTitle.style.filter = isDesactivado ? 'blur(5px)' : 'none';
     }, 5000);
 
-    /*
-     * Al hacer clic en el icono de gafas (toggleImage), se cambia
-     * de desactivado a activado, difuminando o no la tabla
-     * y cambiando el texto del tooltip.
-     */
-    toggleImage.addEventListener('click', () => {
-      const isDesactivado = toggleImage.src.includes('desactivado.png');
-
-      if (isDesactivado) {
-        toggleImage.src = 'blur.png';
-        tooltip.textContent = 'Ahora no veo na';
-        dataTable.classList.add('blurred');
+    // Al hacer clic en el personaje, se activa/desactiva la extensión
+    character.addEventListener('click', toggleProtection);
+    
+    function toggleProtection() {
+      isActive = !isActive;
+      
+      if (isActive) {
+        // Activar la protección
+        const activeOption = document.querySelector('.mode-option.active');
+        const iconSrc = activeOption.getAttribute('data-icon');
+        character.src = iconSrc;
+        character.classList.add('active');
+        statusDot.classList.add('active');
+        statusText.textContent = activeOption.textContent.trim();
+        document.querySelector('.status-indicator').classList.add('active');
+        
+        // Aplicar el efecto según el modo seleccionado
+        applyEffect();
+        
+        // Mostrar mensaje
+        showActionHint('¡Protección activada!');
       } else {
-        toggleImage.src = 'desactivado.png';
-        tooltip.textContent = '¡Quítame las gafas si no quieres que vea el texto!';
-        dataTable.classList.remove('blurred');
+        // Desactivar la protección
+        character.src = 'desactivado.png';
+        character.classList.remove('active');
+        statusDot.classList.remove('active');
+        statusText.textContent = 'Desactivado';
+        document.querySelector('.status-indicator').classList.remove('active');
+        
+        // Quitar todos los efectos
+        removeAllEffects();
+        
+        // Mostrar mensaje
+        showActionHint('Protección desactivada');
       }
+    }
+    
+    // Cambiar entre los diferentes modos
+    modeOptions.forEach(option => {
+      option.addEventListener('click', () => {
+        
+        // Si la opción ya está activa, no hacer nada.
+        if (option.classList.contains('active')) {
+          return;
+        }
+
+        // Desactivar todas las opciones.
+        modeOptions.forEach(opt => {
+          opt.classList.remove('active');
+        });
+        // Activar la opción clickeada.
+        option.classList.add('active');
+        
+        // Establecer el modo actual.
+        currentMode = option.getAttribute('data-mode'); 
+        
+        // Si la protección general está activa, actualizar UI y aplicar efectos.
+        if (isActive) { 
+          if (character) character.src = option.getAttribute('data-icon');
+          
+          // Usar el texto del botón directamente, ya que no hay "Próximamente" aquí.
+          if (statusText) {
+              statusText.textContent = option.textContent.trim();
+          }
+          
+          removeAllEffects(); // Limpiar efectos anteriores.
+          applyEffect();      // Aplicar nuevo efecto.
+          
+          if (actionHint) showActionHint(`Modo ${option.textContent.trim()} activado`);
+        }
+      });
     });
+    
+    // Aplicar el efecto según el modo actual
+    function applyEffect() {
+      if (!demoTable) return;
+
+      // Limpiar clases de efectos anteriores de la tabla.
+      demoTable.classList.remove('blurred', 'column-removed');
+      // También es importante restaurar el texto si el modo anterior fue 'edit'.
+      // removeAllEffects se encarga de restaurar texto, así que si se llamó antes, está bien.
+      // Si no, lo hacemos aquí explícitamente antes de aplicar un nuevo efecto que no sea 'edit'.
+      // (Lo mejor es que removeAllEffects se llame siempre antes de applyEffect)
+
+      if (currentMode === 'blur') {
+        demoTable.classList.add('blurred');
+      } else if (currentMode === 'edit') {
+        // Restaurar nombres originales primero por si se cambia de "edit" a "edit" (aunque no debería pasar con la lógica de "active")
+        // O, más bien, asumir que removeAllEffects ya restauró los nombres originales.
+        for (let i = 0; i < 3; i++) {
+          const nameCell = demoTable.querySelector(`#name${i+1}`);
+          const emailCell = demoTable.querySelector(`#email${i+1}`);
+          if (nameCell) nameCell.textContent = anonymousNames[i]; // Aplicar datos anónimos
+          if (emailCell) emailCell.textContent = anonymousEmails[i];
+        }
+      } else if (currentMode === 'delete') { 
+        demoTable.classList.add('column-removed');
+      }
+    }
+
+    function removeAllEffects() {
+      if (!demoTable) return;
+      demoTable.classList.remove('blurred', 'column-removed');
+      
+      // Restaurar datos originales en la tabla.
+      for (let i = 0; i < 3; i++) {
+        const nameCell = demoTable.querySelector(`#name${i+1}`);
+        const emailCell = demoTable.querySelector(`#email${i+1}`);
+        // Asegúrate que originalNames y originalEmails estén definidos y contengan los datos correctos.
+        if (nameCell && originalNames[i]) nameCell.textContent = originalNames[i];
+        if (emailCell && originalEmails[i]) emailCell.textContent = originalEmails[i];
+      }
+    }
 
     /*
      * Función para mostrar el GIF correspondiente
@@ -444,7 +1445,7 @@
      * corresponda.
      */
     function selectCard(cardId, gifId) {
-      const cards = document.querySelectorAll('.card');
+      const cards = document.querySelectorAll('.step-card');
       cards.forEach(card => {
         card.classList.remove('selected');
       });
@@ -455,6 +1456,111 @@
     // Al cargar la página, seleccionamos la primera tarjeta y su GIF.
     document.addEventListener('DOMContentLoaded', () => {
       selectCard('card1', 'gif1');
+      // Iniciar la "llegada" de notificaciones (ahora individuales)
+      setTimeout(() => {
+        showNextNotification(); // Volvemos a la función original
+      }, 2000);
+    });
+
+    // Cambiamos el nombre de la lista de notificaciones a como estaba originalmente
+    const notifications = [ 
+      {
+        type: 'gmail',
+        avatar: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Gmail_icon_%282020%29.svg/2560px-Gmail_icon_%282020%29.svg.png',
+        title: 'Gmail | Presentación CONFIDENCIAL',
+        message: 'Has enviado la versión con contraseñas al cliente',
+        time: 'ahora',
+        color: '#EA4335'
+      },
+      {
+        type: 'canva',
+        avatar: 'https://static.canva.com/static/images/favicon-1.ico',  // Logo actualizado de Canva
+        title: 'Canva | Tiempo de edición',
+        message: 'Luis: 40min editando capturas (+3h esta semana)',
+        time: '2m',
+        color: '#00C4CC'
+      },
+      {
+        type: 'slack',
+        avatar: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Slack_icon_2019.svg/2048px-Slack_icon_2019.svg.png',
+        title: 'Slack | #random',
+        message: '@Pedro está compartiendo pantalla con datos reales',
+        time: '5m',
+        color: '#4A154B'
+      },
+      {
+        type: 'jira',
+        avatar: 'https://cdn.worldvectorlogo.com/logos/jira-1.svg',
+        title: 'Jira | URGENTE-999',
+        message: 'Base de datos real en las capturas del ticket',
+        time: '10m',
+        color: '#0052CC'
+      }
+    ];
+
+    /* Añadir efectos de sonido */
+    const notificationSounds = {
+      slack: new Audio('https://notifications-sounds.com/sound-effects/slack-notification.mp3'),
+      gmail: new Audio('https://notifications-sounds.com/sound-effects/gmail-notification.mp3'),
+      linkedin: new Audio('https://notifications-sounds.com/sound-effects/linkedin-notification.mp3'),
+      jira: new Audio('https://notifications-sounds.com/sound-effects/jira-notification.mp3')
+    };
+
+    // Función para procesar las notificaciones almacenadas secuencialmente
+    function showNextNotification(index = 0) {
+      if (index < notifications.length) {
+        showNotification(notifications[index]);
+        // Simular llegada de la siguiente notificación
+        setTimeout(() => showNextNotification(index + 1), 2500); 
+      }
+    }
+
+    // Función para crear y "almacenar" una notificación
+    function showNotification(notificationData) {
+      const notificationEl = document.createElement('div');
+      notificationEl.className = `notification ${notificationData.type}`;
+      
+      notificationEl.innerHTML = `
+        <div class="notification-platform">
+          <img src="${notificationData.avatar}" alt="${notificationData.type} logo">
+        </div>
+        <div class="notification-content">
+          <div class="notification-header">
+            <div class="notification-title">${notificationData.title}</div>
+            <div class="notification-time">${notificationData.time}</div>
+          </div>
+          <div class="notification-message">${notificationData.message}</div>
+        </div>
+        <span class="notification-close">✕</span>
+      `;
+
+      notificationsContainer.appendChild(notificationEl);
+
+      // Reproducir sonido con delay aleatorio
+      const soundDelay = Math.random() * 0.3;
+      setTimeout(() => {
+        if (notificationSounds[notificationData.type]) {
+          notificationSounds[notificationData.type].play().catch(e => console.warn("Error al reproducir sonido de notificación:", e));
+        }
+      }, soundDelay * 1000);
+
+      // Animar entrada
+      requestAnimationFrame(() => {
+        notificationEl.style.animation = `notificationPop 0.6s ease-out forwards`;
+      });
+
+      const closeButton = notificationEl.querySelector('.notification-close');
+      closeButton.addEventListener('click', () => {
+        notificationEl.style.animation = 'notificationClose 0.5s ease-out forwards';
+        setTimeout(() => {
+          notificationEl.remove();
+        }, 500);
+      });
+    }
+
+    // Añadir interactividad extra (esto es para el efecto de parallax en las notificaciones individuales)
+    document.addEventListener('mousemove', (e) => {
+      // ... existing code ...
     });
   </script>
 </body>

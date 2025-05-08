@@ -3,122 +3,227 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Política de Privacidad</title>
+    <title>Política de Privacidad - Blurgy</title>
+    <link rel="icon" href="desactivado16.png" type="image/png">
     <style>
+        :root {
+            --primary: #3B82F6;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+
         body {
-            font-family: 'Helvetica Neue', sans-serif;
+            font-family: 'Inter', 'Helvetica Neue', sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #f0f0f5;
-            color: #333;
+            background-color: #ffffff;
+            color: var(--text-primary);
+            line-height: 1.6;
         }
+
         header {
-            background: white;
-            color: #333;
-            padding: 20px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 16px 24px;
             display: flex;
             align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            justify-content: space-between;
+            box-shadow: var(--shadow-sm);
+            z-index: 100;
         }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+
         .logo {
-            max-width: 80px;
-            height: auto;
-            margin-right: 10px;
+            height: 40px;
+            transition: transform 0.3s;
         }
-        h1 {
-            margin: 0;
-            font-size: 2.5em;
-            font-weight: 600;
-            transition: filter 0.3s;
+
+        .logo:hover {
+            transform: scale(1.05);
         }
-        .container {
-            max-width: 900px;
-            margin: 30px auto;
-            padding: 30px;
+
+        .main-content {
+            max-width: 800px;
+            margin: 120px auto 60px;
+            padding: 0 24px;
+        }
+
+        .policy-card {
             background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: var(--shadow-md);
+            margin-bottom: 32px;
         }
-        footer {
+
+        .policy-header {
             text-align: center;
-            padding: 20px;
-            background: white;
-            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 16px;
+            letter-spacing: -0.025em;
+        }
+
+        .update-date {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 32px 0 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        p {
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        ul {
+            padding-left: 20px;
+            margin-bottom: 24px;
+        }
+
+        li {
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .highlight-box {
+            background: var(--bg-gradient);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 24px 0;
+        }
+
+        .highlight-box h3 {
+            color: var(--primary);
+            margin-top: 0;
+        }
+
+        footer {
+            background: var(--bg-gradient);
+            padding: 60px 24px;
+            margin-top: 80px;
+        }
+
+        .footer-content {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .contact-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .contact-link:hover {
+            color: #2563eb;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                margin-top: 100px;
+                padding: 0 20px;
+            }
+
+            .policy-card {
+                padding: 24px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
         }
     </style>
 </head>
 <body>
     <header>
-        <img src="desactivado.png" alt="Logo de Blurgy" class="logo" id="blurgyLogo">
-        <h1 id="blurgyTitle">Política de Privacidad 🎭</h1>
+        <a href="index.html" class="nav-logo">
+            <img src="desactivado.png" alt="Logo de Blurgy" class="logo" id="blurgyLogo">
+            <h3 style="margin: 0;">Blurgy</h3>
+        </a>
     </header>
-    <div class="container">
-        <h2>Política de Privacidad</h2>
-        <p>Última actualización: 22/02/2025</p>
 
-        <h3>Introducción</h3>
-        <p>Esta Política de Privacidad explica cómo nuestra extensión recopila, usa, almacena y protege la información de los usuarios. Nos comprometemos a salvaguardar la privacidad de nuestros usuarios y a cumplir con las regulaciones de protección de datos aplicables.</p>
+    <main class="main-content">
+        <div class="policy-card">
+            <div class="policy-header">
+                <h1>Política de Privacidad</h1>
+                <span class="update-date">Última actualización: 22/02/2025</span>
+            </div>
 
-        <h3>Información que Recopilamos</h3>
-        <p>Nuestra extensión puede recopilar los siguientes tipos de información:</p>
-        <ul>
-            <li><strong>Datos técnicos:</strong> Información sobre la página web activa cuando el usuario interactúa con la extensión.</li>
-            <li><strong>Preferencias del usuario:</strong> Configuraciones almacenadas localmente en el navegador.</li>
-        </ul>
+            <div class="highlight-box">
+                <h3>Lo más importante</h3>
+                <ul>
+                    <li>No recopilamos datos personales</li>
+                    <li>Todo se almacena localmente en tu navegador</li>
+                    <li>No usamos cookies ni rastreadores</li>
+                </ul>
+            </div>
 
-        <h3>Uso de la Información</h3>
-        <p>Los datos recopilados se utilizan únicamente para:</p>
-        <ul>
-            <li>Mejorar la experiencia del usuario.</li>
-            <li>Permitir la configuración personalizada de la extensión.</li>
-            <li>Asegurar el correcto funcionamiento de la extensión.</li>
-        </ul>
+            <h2>Información que recopilamos</h2>
+            <p>Nuestra extensión solo recopila:</p>
+            <ul>
+                <li>Datos técnicos de la página web activa</li>
+                <li>Tus preferencias de configuración (guardadas localmente)</li>
+            </ul>
 
-        <h3>Compartición de Datos</h3>
-        <p>No compartimos, vendemos ni transferimos ningún dato de usuario a terceros, salvo que sea requerido por ley.</p>
+            <h2>Permisos necesarios</h2>
+            <ul>
+                <li><strong>activeTab:</strong> Para interactuar con tu pestaña actual</li>
+                <li><strong>scripting:</strong> Para aplicar los efectos visuales</li>
+                <li><strong>storage:</strong> Para guardar tus configuraciones</li>
+            </ul>
 
-        <h3>Almacenamiento y Seguridad</h3>
-        <p>Los datos se almacenan localmente en el navegador del usuario y no se transmiten a servidores externos. Utilizamos medidas de seguridad adecuadas para proteger la información contra accesos no autorizados.</p>
+            <h2>Tus derechos</h2>
+            <ul>
+                <li>Acceder a tu información guardada</li>
+                <li>Modificar o eliminar tus datos</li>
+                <li>Desinstalar la extensión en cualquier momento</li>
+            </ul>
 
-        <h3>Permisos Utilizados</h3>
-        <p>Nuestra extensión requiere los siguientes permisos para su correcto funcionamiento:</p>
-        <ul>
-            <li><strong>activeTab:</strong> Para interactuar con la pestaña activa cuando el usuario lo solicite.</li>
-            <li><strong>scripting:</strong> Para inyectar scripts en las páginas web con el fin de mejorar la funcionalidad.</li>
-            <li><strong>storage:</strong> Para almacenar configuraciones del usuario localmente.</li>
-        </ul>
+            <h2>Contacto</h2>
+            <p>¿Tienes dudas sobre privacidad? Escríbenos a <a href="mailto:alejandroramirezj95@gmail.com" class="contact-link">alejandroramirezj95@gmail.com</a></p>
+        </div>
+    </main>
 
-        <h3>Uso de Cookies</h3>
-        <p>Esta extensión no utiliza cookies ni mecanismos de rastreo.</p>
-
-        <h3>Derechos del Usuario</h3>
-        <p>Los usuarios tienen derecho a:</p>
-        <ul>
-            <li>Acceder a la información almacenada.</li>
-            <li>Eliminar o modificar sus datos almacenados en la extensión.</li>
-            <li>Desinstalar la extensión en cualquier momento si no desean continuar con su uso.</li>
-        </ul>
-
-        <h3>Cambios en la Política de Privacidad</h3>
-        <p>Nos reservamos el derecho de modificar esta Política de Privacidad en cualquier momento. Se notificará a los usuarios sobre cualquier cambio significativo.</p>
-
-        <h3>Contacto</h3>
-        <p>Si tienes alguna pregunta sobre esta Política de Privacidad, puedes contactarnos en: <a href="mailto:alejandroramirezj95@gmail.com">alejandroramirezj95@gmail.com</a></p>
-    </div>
     <footer>
-        &copy; 2023 Blurgy. Todos los derechos reservados.
+        <div class="footer-content">
+            <p>&copy; 2025 Blurgy. Todos los derechos reservados.</p>
+        </div>
     </footer>
 
     <script>
         const blurgyLogo = document.getElementById('blurgyLogo');
-        const blurgyTitle = document.getElementById('blurgyTitle');
-
-        // Cambiar el logo cada 5 segundos
+        
         setInterval(() => {
             const isBlurred = blurgyLogo.src.includes('desactivado.png');
             blurgyLogo.src = isBlurred ? 'activado.png' : 'desactivado.png';
-            blurgyTitle.style.filter = isBlurred ? 'blur(5px)' : 'none'; // Difuminar el título
         }, 5000);
     </script>
 </body>
