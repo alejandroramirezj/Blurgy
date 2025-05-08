@@ -831,11 +831,42 @@
       }
       
       .carousel-wrapper {
-        gap: 30px;
+        flex-direction: column;
+      }
+      
+      .steps-nav {
+        flex-direction: row;
+        overflow-x: auto;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+        justify-content: flex-start;
+        gap: 10px;
       }
       
       .step-card {
-        padding: 20px;
+        flex: 0 0 auto;
+        min-width: 120px;
+        padding: 12px 16px;
+        text-align: center;
+      }
+      
+      .step-card h4 {
+        font-size: 0.95rem;
+        margin-bottom: 4px;
+      }
+      
+      .step-card p {
+        font-size: 0.8rem;
+        display: none;
+      }
+      
+      .step-card:hover {
+        transform: translateY(-2px);
+      }
+      
+      .carousel {
+        width: 100%;
+        min-width: unset;
       }
       
       .character {
@@ -864,8 +895,8 @@
       }
 
       .click-hint-emoji {
-        font-size: 1.5rem; /* Más pequeño en móvil */
-        right: calc(100% + 5px); /* Más cerca del personaje en móvil */
+        font-size: 1.5rem;
+        right: calc(100% + 5px);
       }
     }
 
@@ -909,9 +940,9 @@
       flex-direction: column;
       gap: 12px;
       width: 380px;
-      max-height: calc(100vh - 100px); /* Evitar que se salga de la pantalla */
-      overflow-y: auto; /* Permitir scroll si hay muchas notificaciones */
-      padding-bottom: 20px; /* Espacio para el scroll */
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
+      padding-bottom: 20px;
     }
 
     /* Estilos para cada notificación individual */
@@ -922,13 +953,13 @@
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
       padding: 16px;
       border: 1px solid rgba(0, 0, 0, 0.06);
-      opacity: 0; /* Restaurado para animación de entrada JS */
-      transform: translateX(100%); /* Restaurado para animación de entrada JS */
-      transition: all 0.3s ease; /* Para el hover y la animación de cierre si no se anula por JS */
+      opacity: 0;
+      transform: translateX(100%);
+      transition: all 0.3s ease;
     }
 
     .notification:hover {
-      opacity: 1 !important; /* Asegurar que no sea transparente */
+      opacity: 1 !important;
     }
 
     /* Eliminar los bordes de color específicos de tipo si no se desean */
@@ -985,9 +1016,8 @@
 
     /* Estilos para la tarjeta de característica "Próximamente" - Se mantiene como está para la sección features */
     .feature-card.feature-soon {
-      position: relative; /* Necesario para posicionar el badge absoluto */
-      overflow: hidden; /* Para asegurar que el badge no se salga si es una cinta rotada */
-      /* Ya no se atenúa ni se desactivan los eventos de puntero */
+      position: relative;
+      overflow: hidden;
     }
     .feature-card.feature-soon:hover {
       transform: translateY(-5px); 
@@ -995,22 +1025,22 @@
     }
     /* Eliminamos el estilo anterior de la etiqueta debajo del h3 */
     .feature-card.feature-soon h3 .feature-soon-label {
-        display: none; /* O simplemente eliminar el span del HTML */
+        display: none;
     }
-    .feature-card.feature-soon h3::after { /* También eliminar si se usó antes para esto */
+    .feature-card.feature-soon h3::after {
         content: none;
     }
 
     /* Nuevo badge "Próximamente" en la esquina de la tarjeta */
     .feature-card.feature-soon::after {
-      content: "PRÓXIMAMENTE"; /* Texto del badge */
+      content: "PRÓXIMAMENTE";
       position: absolute;
-      top: 15px; /* Distancia desde arriba */
-      right: -35px; /* Empujar hacia afuera para rotar correctamente */
+      top: 15px;
+      right: -35px;
       transform: rotate(45deg);
-      background-color: #007bff; /* Un color azul llamativo, o el que prefieras */
+      background-color: #007bff;
       color: white;
-      padding: 4px 40px; /* Ancho del badge (controlado por el padding horizontal) */
+      padding: 4px 40px;
       font-size: 10px;
       font-weight: bold;
       letter-spacing: 0.5px;
@@ -1020,19 +1050,18 @@
     }
 
     .character-interaction-hint {
-      /* background-color: #4A90E2; */ /* Color azul anterior */
-      background-color: #FFFFFF; /* Nuevo fondo blanco */
-      color: #333333; /* Nuevo color de texto oscuro para contraste */
-      border-radius: 8px; /* Bordes un poco más redondeados */
-      padding: 10px 16px; /* Un poco más de padding */
-      font-size: 0.9em; /* Ligeramente más grande */
+      background-color: #FFFFFF;
+      color: #333333;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 0.9em;
       font-weight: 500;
       position: absolute;
-      top: -45px; /* Ajustar si es necesario por el padding */
+      top: -45px;
       left: 50%;
       transform: translateX(-50%);
       white-space: nowrap;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.1); /* Sombra más pronunciada */
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.1);
       z-index: 11;
       opacity: 0;
       transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
@@ -1042,7 +1071,7 @@
     .character-interaction-hint.show-initially {
       opacity: 1;
       transform: translateX(-50%) translateY(-5px);
-      animation: fadeOutHint 1s ease-in-out 2.5s forwards; /* Aparece, espera 2.5s, luego se desvanece en 1s */
+      animation: fadeOutHint 1s ease-in-out 2.5s forwards;
     }
 
     @keyframes fadeOutHint {
@@ -1054,33 +1083,29 @@
     .character-interaction-hint::after {
       content: "";
       position: absolute;
-      top: 100%; /* Para que la flecha esté abajo del bocadillo */
+      top: 100%;
       left: 50%;
       margin-left: -6px;
       border-width: 6px;
       border-style: solid;
-      /* border-color: #4A90E2 transparent transparent transparent; */ /* Flecha azul anterior */
-      border-color: #FFFFFF transparent transparent transparent; /* Flecha blanca */
-      /* Para la sombra en la flecha, es más complejo, usualmente se simula o se omite.
-         Por simplicidad, la flecha será blanca sin sombra directa, 
-         la sombra del cuerpo principal debería dar suficiente profundidad. */
+      border-color: #FFFFFF transparent transparent transparent;
     }
 
     .character-container:hover .character-interaction-hint {
       opacity: 1;
-      transform: translateX(-50%) translateY(-5px); /* Ligero movimiento hacia arriba */
-      animation: none; /* Cancela la animación de desvanecimiento si el hover ocurre */
+      transform: translateX(-50%) translateY(-5px);
+      animation: none;
     }
 
     .click-hint-emoji {
       position: absolute;
-      font-size: 2rem; /* Tamaño del emoji */
+      font-size: 2rem;
       top: 50%;
-      right: calc(100% + 10px); /* A la izquierda del contenedor del personaje */
+      right: calc(100% + 10px);
       transform: translateY(-50%);
       animation: pointAnimation 1.5s ease-in-out infinite;
-      display: none; /* Oculto por defecto, se mostrará con JS */
-      pointer-events: none; /* Para que no interfiera con clics */
+      display: none;
+      pointer-events: none;
     }
 
     @keyframes pointAnimation {
@@ -1362,8 +1387,8 @@
     const actionHint = document.getElementById('actionHint');
     const modeOptions = document.querySelectorAll('.mode-option');
     const carouselItems = document.querySelectorAll('.carousel-item');
-    const characterTooltip = document.getElementById('characterTooltip'); // Referencia al tooltip
-    const clickHintEmoji = document.getElementById('clickHintEmoji'); // Referencia al emoji
+    const characterTooltip = document.getElementById('characterTooltip');
+    const clickHintEmoji = document.getElementById('clickHintEmoji');
     
     // Datos originales y anónimos
     const originalNames = ['FBI - Frank B. Iñigo', 'Cliente Secreto - Juanito', 'Caso Asado - Pepito'];
@@ -1384,7 +1409,7 @@
         initial: "Tápame los ojos",
         active: "¿Quién ha apagado la luz?"
       },
-      edit: { // Modo "Próximamente"
+      edit: {
         initial: "Activa mi modo creativo",
         active: "¡Vamos a editar!"
       }
@@ -1392,7 +1417,7 @@
 
     function updateCharacterTooltip() {
       if (!characterTooltip) return;
-      const texts = modeTooltips[currentMode] || modeTooltips.blur; // Fallback a blur
+      const texts = modeTooltips[currentMode] || modeTooltips.blur;
       characterTooltip.textContent = isActive ? texts.active : texts.initial;
     }
     
@@ -1436,8 +1461,8 @@
         character.src = iconSrc;
         character.classList.add('active');
         statusDot.classList.add('active');
-        updateCharacterTooltip(); // Actualizar tooltip según el modo y estado activo
-        if (clickHintEmoji) clickHintEmoji.style.display = 'none'; // Ocultar emoji
+        updateCharacterTooltip();
+        if (clickHintEmoji) clickHintEmoji.style.display = 'none';
 
         let modeText = activeOption.textContent.trim();
         if (activeOption.classList.contains('soon') && activeOption.querySelector('.mode-option-main-text')) {
@@ -1458,8 +1483,8 @@
         character.classList.remove('active');
         statusDot.classList.remove('active');
         statusText.textContent = 'Desactivado';
-        updateCharacterTooltip(); // Actualizar tooltip según el modo y estado inactivo
-        if (clickHintEmoji) clickHintEmoji.style.display = 'block'; // Mostrar emoji
+        updateCharacterTooltip();
+        if (clickHintEmoji) clickHintEmoji.style.display = 'block';
         document.querySelector('.status-indicator').classList.remove('active');
         
         // Quitar todos los efectos
@@ -1488,7 +1513,7 @@
         
         // Establecer el modo actual.
         currentMode = option.getAttribute('data-mode'); 
-        updateCharacterTooltip(); // Actualizar tooltip al cambiar de modo
+        updateCharacterTooltip();
         
         // Si la protección general está activa, actualizar UI y aplicar efectos.
         if (isActive) { 
@@ -1502,8 +1527,8 @@
               statusText.textContent = modeText;
           }
           
-          removeAllEffects(); // Limpiar efectos anteriores.
-          applyEffect();      // Aplicar nuevo efecto.
+          removeAllEffects();
+          applyEffect();
           
           if (actionHint) showActionHint(`Modo ${modeText} activado`);
         }
@@ -1529,7 +1554,7 @@
         for (let i = 0; i < 3; i++) {
           const nameCell = demoTable.querySelector(`#name${i+1}`);
           const emailCell = demoTable.querySelector(`#email${i+1}`);
-          if (nameCell) nameCell.textContent = anonymousNames[i]; // Aplicar datos anónimos
+          if (nameCell) nameCell.textContent = anonymousNames[i];
           if (emailCell) emailCell.textContent = anonymousEmails[i];
         }
       } else if (currentMode === 'delete') { 
@@ -1592,7 +1617,6 @@
             characterTooltip.classList.add('show-initially');
             if (clickHintEmoji) clickHintEmoji.style.display = 'block'; // Mostrar emoji si está inactivo
         } else {
-            // updateCharacterTooltip(); // Ya llamado arriba, asegura texto activo correcto si ya está activo
             if (clickHintEmoji) clickHintEmoji.style.display = 'none'; // Ocultar emoji si está activo
         }
       }
