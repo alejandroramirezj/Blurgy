@@ -404,6 +404,9 @@
       color: #495057;
       font-weight: 400;
     }
+    .mode-option.soon.active .mode-option-soon-text {
+      color: rgba(255, 255, 255, 0.85); /* Hacemos el texto "Próximamente" más claro cuando está activo */
+    }
     .mode-option.soon::before,
     .mode-option.soon::after {
       content: none;
@@ -859,6 +862,11 @@
       .emoji-secondary {
         font-size: 1.8rem;
       }
+
+      .click-hint-emoji {
+        font-size: 1.5rem; /* Más pequeño en móvil */
+        right: calc(100% + 5px); /* Más cerca del personaje en móvil */
+      }
     }
 
     /* Estilos para el bocadillo de texto del personaje */
@@ -1010,6 +1018,79 @@
       box-shadow: 0 2px 4px rgba(0,0,0,0.2);
       z-index: 1;
     }
+
+    .character-interaction-hint {
+      /* background-color: #4A90E2; */ /* Color azul anterior */
+      background-color: #FFFFFF; /* Nuevo fondo blanco */
+      color: #333333; /* Nuevo color de texto oscuro para contraste */
+      border-radius: 8px; /* Bordes un poco más redondeados */
+      padding: 10px 16px; /* Un poco más de padding */
+      font-size: 0.9em; /* Ligeramente más grande */
+      font-weight: 500;
+      position: absolute;
+      top: -45px; /* Ajustar si es necesario por el padding */
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.1); /* Sombra más pronunciada */
+      z-index: 11;
+      opacity: 0;
+      transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+      pointer-events: none; 
+    }
+
+    .character-interaction-hint.show-initially {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-5px);
+      animation: fadeOutHint 1s ease-in-out 2.5s forwards; /* Aparece, espera 2.5s, luego se desvanece en 1s */
+    }
+
+    @keyframes fadeOutHint {
+      to {
+        opacity: 0;
+      }
+    }
+
+    .character-interaction-hint::after {
+      content: "";
+      position: absolute;
+      top: 100%; /* Para que la flecha esté abajo del bocadillo */
+      left: 50%;
+      margin-left: -6px;
+      border-width: 6px;
+      border-style: solid;
+      /* border-color: #4A90E2 transparent transparent transparent; */ /* Flecha azul anterior */
+      border-color: #FFFFFF transparent transparent transparent; /* Flecha blanca */
+      /* Para la sombra en la flecha, es más complejo, usualmente se simula o se omite.
+         Por simplicidad, la flecha será blanca sin sombra directa, 
+         la sombra del cuerpo principal debería dar suficiente profundidad. */
+    }
+
+    .character-container:hover .character-interaction-hint {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-5px); /* Ligero movimiento hacia arriba */
+      animation: none; /* Cancela la animación de desvanecimiento si el hover ocurre */
+    }
+
+    .click-hint-emoji {
+      position: absolute;
+      font-size: 2rem; /* Tamaño del emoji */
+      top: 50%;
+      right: calc(100% + 10px); /* A la izquierda del contenedor del personaje */
+      transform: translateY(-50%);
+      animation: pointAnimation 1.5s ease-in-out infinite;
+      display: none; /* Oculto por defecto, se mostrará con JS */
+      pointer-events: none; /* Para que no interfiera con clics */
+    }
+
+    @keyframes pointAnimation {
+      0%, 100% {
+        transform: translateY(-50%) translateX(0);
+      }
+      50% {
+        transform: translateY(-50%) translateX(10px);
+      }
+    }
   </style>
 </head>
 <body>
@@ -1076,15 +1157,20 @@
               <img src="borrar.png" alt="Borrar" width="20" height="20" class="mode-option-icon">
               Eliminar
             </div>
-            <div class="mode-option" data-mode="edit" data-icon="editar.png">
+            <div class="mode-option soon" data-mode="edit" data-icon="editar.png">
               <img src="editar.png" alt="Editar" width="20" height="20" class="mode-option-icon">
-              Editar
+              <div class="mode-option-text-container">
+                <span class="mode-option-main-text">Editar</span>
+                <span class="mode-option-soon-text">Próximamente</span>
+              </div>
             </div>
           </div>
 
           <!-- Personaje central -->
           <div class="character-container">
             <img src="desactivado.png" id="character" class="character" alt="Character">
+            <div id="characterTooltip" class="character-interaction-hint">Quítame las gafas</div>
+            <span id="clickHintEmoji" class="click-hint-emoji">👉🏻</span>
           </div>
 
           <!-- Indicador de estado -->
@@ -1276,6 +1362,8 @@
     const actionHint = document.getElementById('actionHint');
     const modeOptions = document.querySelectorAll('.mode-option');
     const carouselItems = document.querySelectorAll('.carousel-item');
+    const characterTooltip = document.getElementById('characterTooltip'); // Referencia al tooltip
+    const clickHintEmoji = document.getElementById('clickHintEmoji'); // Referencia al emoji
     
     // Datos originales y anónimos
     const originalNames = ['FBI - Frank B. Iñigo', 'Cliente Secreto - Juanito', 'Caso Asado - Pepito'];
@@ -1286,6 +1374,27 @@
     // Estado de la extensión
     let isActive = false;
     let currentMode = "blur";
+    
+    const modeTooltips = {
+      blur: {
+        initial: "Quítame las gafas",
+        active: "¡Ui, ya no veo!"
+      },
+      delete: {
+        initial: "Tápame los ojos",
+        active: "¿Quién ha apagado la luz?"
+      },
+      edit: { // Modo "Próximamente"
+        initial: "Activa mi modo creativo",
+        active: "¡Vamos a editar!"
+      }
+    };
+
+    function updateCharacterTooltip() {
+      if (!characterTooltip) return;
+      const texts = modeTooltips[currentMode] || modeTooltips.blur; // Fallback a blur
+      characterTooltip.textContent = isActive ? texts.active : texts.initial;
+    }
     
     // Función para mostrar el mensaje de acción temporalmente
     function showActionHint(message) {
@@ -1327,7 +1436,15 @@
         character.src = iconSrc;
         character.classList.add('active');
         statusDot.classList.add('active');
-        statusText.textContent = activeOption.textContent.trim();
+        updateCharacterTooltip(); // Actualizar tooltip según el modo y estado activo
+        if (clickHintEmoji) clickHintEmoji.style.display = 'none'; // Ocultar emoji
+
+        let modeText = activeOption.textContent.trim();
+        if (activeOption.classList.contains('soon') && activeOption.querySelector('.mode-option-main-text')) {
+            modeText = activeOption.querySelector('.mode-option-main-text').textContent.trim();
+        }
+        statusText.textContent = modeText;
+        
         document.querySelector('.status-indicator').classList.add('active');
         
         // Aplicar el efecto según el modo seleccionado
@@ -1341,6 +1458,8 @@
         character.classList.remove('active');
         statusDot.classList.remove('active');
         statusText.textContent = 'Desactivado';
+        updateCharacterTooltip(); // Actualizar tooltip según el modo y estado inactivo
+        if (clickHintEmoji) clickHintEmoji.style.display = 'block'; // Mostrar emoji
         document.querySelector('.status-indicator').classList.remove('active');
         
         // Quitar todos los efectos
@@ -1369,20 +1488,24 @@
         
         // Establecer el modo actual.
         currentMode = option.getAttribute('data-mode'); 
+        updateCharacterTooltip(); // Actualizar tooltip al cambiar de modo
         
         // Si la protección general está activa, actualizar UI y aplicar efectos.
         if (isActive) { 
           if (character) character.src = option.getAttribute('data-icon');
           
-          // Usar el texto del botón directamente, ya que no hay "Próximamente" aquí.
+          let modeText = option.textContent.trim();
+          if (option.classList.contains('soon') && option.querySelector('.mode-option-main-text')) {
+            modeText = option.querySelector('.mode-option-main-text').textContent.trim();
+          }
           if (statusText) {
-              statusText.textContent = option.textContent.trim();
+              statusText.textContent = modeText;
           }
           
           removeAllEffects(); // Limpiar efectos anteriores.
           applyEffect();      // Aplicar nuevo efecto.
           
-          if (actionHint) showActionHint(`Modo ${option.textContent.trim()} activado`);
+          if (actionHint) showActionHint(`Modo ${modeText} activado`);
         }
       });
     });
@@ -1460,6 +1583,19 @@
       setTimeout(() => {
         showNextNotification(); // Volvemos a la función original
       }, 2000);
+
+      // Mostrar el tooltip del personaje inicialmente
+      if (characterTooltip) {
+        // Solo mostrar animación inicial si la protección no está activa por defecto
+        updateCharacterTooltip(); // Establecer el texto inicial correcto para el modo por defecto
+        if (!isActive) {
+            characterTooltip.classList.add('show-initially');
+            if (clickHintEmoji) clickHintEmoji.style.display = 'block'; // Mostrar emoji si está inactivo
+        } else {
+            // updateCharacterTooltip(); // Ya llamado arriba, asegura texto activo correcto si ya está activo
+            if (clickHintEmoji) clickHintEmoji.style.display = 'none'; // Ocultar emoji si está activo
+        }
+      }
     });
 
     // Cambiamos el nombre de la lista de notificaciones a como estaba originalmente
